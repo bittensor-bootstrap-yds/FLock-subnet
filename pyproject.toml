@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "FLock-subnet"
+version = "0.2.0"
+description = "FLock Subnet"
+authors = [""]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+bittensor = "^6.9.3"
+python-dotenv = "^1.0.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
