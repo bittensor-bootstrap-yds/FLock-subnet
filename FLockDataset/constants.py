@@ -4,8 +4,8 @@ from typing import List
 import math
 
 # The uid for this subnet.
-# SUBNET_UID = 40
-SUBNET_UID = 1
+# testnet
+SUBNET_UID = 257
 # The start block of this subnet
 ROOT_DIR = Path(__file__).parent.parent
 
