@@ -14,6 +14,7 @@
 # OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 # DEALINGS IN THE SOFTWARE.
 
+import os
 import argparse
 import math
 import asyncio
@@ -140,6 +141,7 @@ class Validator:
             metadata_per_uid = {uid: None for uid in uids_to_sync}
             block_per_uid = {uid: None for uid in uids_to_sync}
             is_duplicate = []
+            lucky_num = int.from_bytes(os.urandom(4), 'little')
             for uid in uids_to_sync:
                 metadata = retrieve_model_metadata(self.subtensor, self.config.netuid, self.metagraph.hotkeys[uid])
                 print(f"uid: {uid}")
@@ -148,7 +150,7 @@ class Validator:
                     try:
                         download_dataset(metadata.id.namespace, metadata.id.commit)
                         download_dataset(constants.eval_namespace, constants.eval_commit, local_dir="eval_data")
-                        eval_loss = train_lora()
+                        eval_loss = train_lora(lucky_num)
                         other_uid = [k for k, v in scores_per_uid.items() if
                                      v is not None and math.isclose(eval_loss, v, rel_tol=1e-9)]
 

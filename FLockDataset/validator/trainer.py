@@ -34,9 +34,9 @@ def clean_cache_folder():
         pass
 
 
-def train_lora() -> float:
+def train_lora(lucky_num: int) -> float:
     # set the same random seed to detect duplicate data sets
-    lucky_num = int.from_bytes(os.urandom(4), 'little')
+
     torch.manual_seed(lucky_num)
     torch.cuda.manual_seed(lucky_num)
     torch.cuda.manual_seed_all(lucky_num)
