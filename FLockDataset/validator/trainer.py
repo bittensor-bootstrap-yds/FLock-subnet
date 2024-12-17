@@ -127,4 +127,4 @@ def train_lora(lucky_num: int) -> float:
     # Eval model
     eval_result = trainer.evaluate()
 
-    return eval_result.eval_loss
+    return eval_result["eval_loss"]

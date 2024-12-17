@@ -78,6 +78,7 @@ class SFTDataCollator(object):
     def __init__(self, tokenizer, max_seq_length):
         self.tokenizer = tokenizer
         self.max_seq_length = max_seq_length
+        self.tokenizer.pad_token = tokenizer.pad_token or tokenizer.eos_token
         self.pad_token_id = tokenizer.pad_token_id
 
     def __call__(self, batch: List[Dict[str, Any]]) -> Dict[str, Any]:
