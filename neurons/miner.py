@@ -11,7 +11,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-
 def get_config():
     # Initialize an argument parser
     parser = argparse.ArgumentParser()
@@ -23,14 +22,13 @@ def get_config():
     )
     parser.add_argument(
         "--netuid",
-        type=str,
-
+        type=int,
+        required=True,
         help="The subnet UID.",
     )
     parser.add_argument(
         "--dataset_path",
         type=str,
-
         help="The dataset path, name as data.json",
     )
 
