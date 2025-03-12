@@ -2,8 +2,12 @@
 name = "FLock-subnet"
 version = "0.2.0"
 description = "FLock Subnet"
-authors = [""]
+authors = ["Flock Devs"]
 readme = "README.md"
+packages = [
+    {include = "FLockDataset"},
+    {include = "neurons"}
+]
 
 [tool.poetry.dependencies]
 python = "^3.9"
