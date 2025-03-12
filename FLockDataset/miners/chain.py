@@ -2,7 +2,6 @@ import functools
 import multiprocessing
 import bittensor as bt
 from typing import Optional, Any
-from FLockDataset.miners.data import ModelId
 
 
 def run_in_subprocess(func: functools.partial, ttl: int) -> Any:
