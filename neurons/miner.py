@@ -22,8 +22,7 @@ def get_config():
     )
     parser.add_argument(
         "--netuid",
-        type=int,
-        required=True,
+        type=str,
         help="The subnet UID.",
     )
     parser.add_argument(
@@ -46,7 +45,7 @@ async def main(config: bt.config):
 
     wallet = bt.wallet(config=config)
     subtensor = bt.subtensor(config=config)
-    metagraph: bt.metagraph = subtensor.metagraph(config.netuid)
+    metagraph: bt.metagraph = subtensor.metagraph(271)
 
     # Make sure we're registered and have a HuggingFace token.
     assert_registered(wallet, metagraph)
