@@ -1,10 +1,13 @@
-# FLockDataset: A Dataset Quality Competition Network for Machine Learning
+# FLockDataset
 
-FLockDataset (Bittensor Subnet) is a decentralized verification mechanism that incentivizes 
-miners to create high-quality datasets for training machine learning models.
+## A Dataset Quality Competition Network for Machine Learning
 
+FLockDataset is a Bittensor subnet designed to incentivize the creation of high-quality datasets for machine learning. Miners generate and upload datasets to Hugging Face, while validators assess their quality by training LoRA (Low-Rank Adaptation) models on a standardized base model (meta-llama/Llama-3.2-1B) and rewarding miners based on performance.
+
+---
 
 ## Table of Contents
+
 - [Compute Requirements](#compute-requirements)
 - [Installation](#installation)
 - [How to Run FLockDataset](#how-to-run-flockdataset)
@@ -17,151 +20,228 @@ miners to create high-quality datasets for training machine learning models.
   - [Hugging Face Integration](#hugging-face-integration)
   - [LoRA Training Evaluation](#lora-training-evaluation)
 
-## Recommended Compute Requirements
+---
 
-For validators we recommend at least an [INSERT_EXPECTED_GPU] for efficient LoRA training evaluations, 
-although an [INSERT_MINIMUM_GPU] could also be used. 
+## Compute Requirements
 
-For miners, no specialized hardware is required as dataset creation and uploading is the primary task.
+### For Validators
 
-### Minimum Viable Compute Recommendations
-- **For Validators:**
-  - VRAM: [VRAM]
-  - Storage: [STORAGE_NECESSARY]
-  - RAM: [RAM]
-  - CPU: [CPU]
+Validators perform LoRA training on miners' datasets, requiring significant GPU resources:
 
-- **For Miners:**
-  - No specific GPU requirements
-  - Hugging Face account with API access token
-  - Storage: Some local storage for dataset creation and uploading [CHECK]
+- **Recommended GPU:** NVIDIA-RTX 4090 with 24GB VRAM
+- **Minimum GPU:** NVIDIA RTX 3060 with 12GB VRAM  
+- **Storage:** ~50GB SSD
+- **RAM:** 16GB
+- **CPU:** 8-core Intel i7 or equivalent
+
+### For Miners 
+
+Miners focus on dataset creation and uploading, requiring minimal compute:
+
+- **GPU:** Not required  
+- **Storage:** ~10GB  
+- **RAM:** 8GB  
+- **Hugging Face Account:** Required with an API token for dataset uploads
+
+---
 
 ## Installation
 
 ### Overview
-In order to run FLockDataset, you will need to install the FLockDataset package and set up a Hugging Face account. 
-The following instructions apply to all major operating systems.
+
+In order to run FLockDataset, you will need to install the FLockDataset package and set up a Hugging Face account. The following instructions apply to all major operating systems.
 
 ### Clone the repository
+
 ```bash
-git clone https://github.com/organization/flockdataset.git
-cd flockdataset
+git clone https://github.com/FLock-io/FLock-subnet.git
+cd FLock-subnet
 ```
 
 ### Install dependencies
+
 ```bash
 python3 -m pip install -e .
 ```
 
 ### Set up Hugging Face credentials
-You'll need to create a Hugging Face account and generate an API token at https://huggingface.co/settings/tokens
 
-Create a `.env` file in the project root and add your token:
+1. Create a Hugging Face account at huggingface.co
+2. Generate an API token at huggingface.co/settings/tokens
+3. Create a .env file in the project root:
 
 ```
-HF_TOKEN=your_huggingface_token_here
-```
+HF_TOKEN=<YOUR_HUGGING_FACE_API_TOKEN>
+``` 
 
-You have now installed FLockDataset. You can now run a validator or a miner.
+4. Ensure the token has write access for miners (to upload datasets) and read access for validators
+
+---
 
 ## How to Run FLockDataset
 
 ### Running a Miner
 
-Before starting or registering your miner in FLockDataset, you'll need to:
+#### Prerequisites
 
-// We should add instructions on how to do this 
+Before mining, prepare the following:
 
-1. Create a Hugging Face account and generate an API token
-2. Create a Hugging Face repository to host your dataset
-3. Prepare a high-quality dataset in JSON format
+1. **Hugging Face Account and Repository:**
+   - Create a dataset repository on Hugging Face (e.g., yourusername/my-dataset)
+   - Ensure your API token has write permissions
 
-Once you have your dataset prepared, you can start your miner:
+2. **Dataset Creation:** 
+   - Generate a dataset in JSONL format (one JSON object per line)
+   - Each entry must follow this structure:
 
-```bash
-python3 neurons/miner.py --wallet.name [WALLET_NAME] --wallet.hotkey [WALLET_HOTKEY] --subtensor.network [NETWORK] --hf_repo_id [HF_REPO_ID] --netuid [NETUID] --dataset_path [PATH_TO_DATA_JSON] --logging.trace
+```json
+{
+  "system": "Optional system prompt (can be null)",
+  "conversations": [
+    {"role": "user", "content": "User input text"},
+    {"role": "assistant", "content": "Assistant response text"}
+  ]
+}
 ```
 
-Please replace the following with your specific configuration:
-- `[WALLET_NAME]`
-- `[WALLET_HOTKEY]`
-- `[NETWORK]` (e.g., finney, local)
-- `[HF_REPO_ID]` (your Hugging Face repository ID, e.g., username/repo-name)
-- `[NETUID]` (the subnet UID)
-- `[PATH_TO_DATA_JSON]` (path to your dataset file)
+**Example:**
 
-The miner script will:
-1. Upload your dataset to Hugging Face
-2. Register the dataset's location and commit ID // CHECK
-3. Make it available for validators to evaluate
+```jsonl 
+{"system": "You are a helpful assistant.", "conversations": [{"role": "user", "content": "What is AI?"}, {"role": "assistant", "content": "AI is artificial intelligence."}]}
+{"system": null, "conversations": [{"role": "user", "content": "Tell me a joke."}, {"role": "assistant", "content": "Why don't skeletons fight? They don't have guts."}]}
+```
+
+3. **Bittensor Wallet:** Register your hotkey on the subnet 
+
+#### Steps to Run a Miner
+
+**Prepare Your Dataset:**
+Use a script, scrape data, or manually curate data.jsonl. Aim for high-quality, diverse user-assistant pairs to maximize validator scores.
+
+**Run the Miner Script:**
+
+```bash
+python3 neurons/miner.py \
+  --wallet.name your_coldkey_name \
+  --wallet.hotkey your_hotkey_name \
+  --subtensor.network finney \
+  --hf_repo_id yourusername/my-dataset \
+  --netuid netuid \
+  --dataset_path ./data.jsonl \
+  --logging.trace
+```
+
+Replace placeholders:
+- `your_coldkey_name`: Your Bittensor wallet name
+- `your_hotkey_name`: Your miner's hotkey
+- `finney`: Network (use local for testing)
+- `yourusername/my-dataset`: Your Hugging Face repo
+- `netuid`: Subnet UID (adjust if different)
+- `./data/data.jsonl`: Path to your dataset
+
+**What Happens:**
+- The script uploads data.jsonl to your Hugging Face repo
+- It retrieves a commit hash (e.g., abc123...) and constructs a ModelId (e.g., yourusername/my-dataset:ORIGINAL_COMPETITION_ID:abc123...)
+- It registers this metadata on the Bittensor chain (retrying every 120 seconds if the 20-minute commit cooldown applies)
+- Transaction fee: ~0.01 TAO (varies with network congestion)
+
+**Tips:**
+- Ensure your dataset is unique—validators penalize duplicates
+- Monitor logs (--logging.trace) for upload or chain errors
 
 ### Running a Validator
 
-Validators train LoRA models on miners' datasets and evaluate their quality:
+#### Prerequisites
+
+- **Hardware:** NVIDIA 4090 (24GB VRAM) recommended
+- **Bittensor Wallet:** Register your hotkey on the subnet
+- **Hugging Face Token:** Read access for downloading datasets
+
+#### Steps to Run a Validator
+
+**Ensure GPU Setup:**
+- Install CUDA (e.g., 12.1) and cuDNN compatible with PyTorch
+- Verify with nvidia-smi and torch.cuda.is_available()
+
+**Run the Validator Script:**
 
 ```bash
-python3 neurons/validator.py --wallet.name [WALLET_NAME] --netuid [NETUID] --blocks_per_epoch [BLOCKS] --logging.trace
+python3 neurons/validator.py \
+  --wallet.name your_coldkey_name \
+  --netuid netuid \
+  --logging.trace
 ```
 
-Please replace the following with your specific configuration:
-- `[WALLET_NAME]`
-- `[NETUID]` (the subnet UID)
-- `[BLOCKS]` (number of blocks per epoch, default is 100) // we should get this from hyper params
+Replace placeholders:
+- `your_coldkey_name`: Your Bittensor wallet name
+- `netuid`: Subnet UID 
 
-## What is A Dataset Competition Network?
+**What Happens:**
+- Syncs the metagraph to identify active miners
+- Selects up to 32 miners per epoch using an EvalQueue
+- For each miner:
+  - Retrieves metadata (e.g., ModelId) from the chain
+  - Downloads the dataset from Hugging Face (e.g., yourusername/my-dataset:abc123...)
+  - Downloads a fixed evaluation dataset (eval_data/eval_data.jsonl)
+  - Trains a LoRA model on the miner's dataset using meta-llama/Llama-3.2-1B
+  - Evaluates loss on eval_data
+  - Computes win rates, adjusts weights, and submits them to the chain
 
-FLockDataset is a subnet where miners compete to create the highest quality datasets for training machine learning models. 
-Validators evaluate these datasets by training LoRA models on them and comparing performance metrics.
+**Training Details:**
+- **Model:** meta-llama/Llama-3.2-1B (4-bit quantized)
+- **LoRA Config:** Rank=4, Alpha=8, Dropout=0.1, targeting q_proj and v_proj
+- **Training Args:** Batch size=1, gradient accumulation=8, 3 epochs, 512-token context
+- **Data Capacity:** With 24GB VRAM, ~10,000-20,000 rows (assuming ~256 tokens/row) per dataset, though limited by epoch duration and miner sample size (32)
+
+**Tips:**
+- Ensure ample storage for datasets and model checkpoints
+- Use --logging.trace to debug training or chain issues
+
+---
+
+## What is a Dataset Competition Network?
+
+FLockDataset is a decentralized subnet where miners compete to create high-quality datasets, and validators evaluate them using LoRA training. Rewards (in TAO) are distributed based on dataset performance, not raw compute power.
 
 ### Role of a Miner
 
-A miner is responsible for:
-1. Creating high-quality datasets that effectively teach models useful capabilities
-2. Formatting the data in a suitable structure (JSON)
-3. Uploading datasets to Hugging Face
-4. Registering dataset metadata on the blockchain // Document txn fee here 
+**Task:** Create and upload datasets that improve model performance (e.g., low evaluation loss).
 
-Miners compete to create datasets that result in better-performing models when evaluated by validators.
+**Process:**
+- Curate a dataset (e.g., conversational pairs in JSONL)
+- Upload to Hugging Face with version control
+- Register metadata on-chain (~0.01 TAO fee)
+
+**Goal:** Outperform other miners in validator evaluations.
 
 ### Role of a Validator
 
-A validator is responsible for:
-1. Retrieving miners' dataset metadata from the blockchain
-2. Downloading datasets from Hugging Face
-3. Training LoRA models using the datasets
-4. Measuring model performance through evaluation loss
-5. Computing win rates between datasets based on performance
-6. Setting weights on the blockchain that determine miners' rewards
+**Task:** Assess dataset quality and set miner rewards.
 
-Validators ensure that miners are rewarded based on the actual quality of their datasets rather than computational resources.
+**Process:**
+- Fetch miner metadata from the chain
+- Download datasets from Hugging Face
+- Train LoRA on meta-llama/Llama-3.2-1B with each dataset
+- Evaluate loss on a standard test set
+- Compute win rates and update weights on-chain
+
+**Goal:** Fairly reward miners based on dataset utility.
+
+---
 
 ## Features of FLockDataset
 
 ### Hugging Face Integration
 
-FLockDataset leverages Hugging Face's infrastructure for dataset storage and version control:
-- Miners maintain their own repositories for datasets
-- Each submission is uniquely identifiable by repository + commit ID
-- Version control is built-in through Hugging Face's Git-based system
-- Validators can easily download and compare multiple datasets
+- **Storage:** Miners use Hugging Face repos for datasets (e.g., username/repo:commit)
+- **Versioning:** Git-based commits ensure reproducibility
+- **Accessibility:** Validators download datasets via the Hugging Face API
 
 ### LoRA Training Evaluation
 
-FLockDataset uses LoRA (Low-Rank Adaptation) for efficient evaluation:
-- Trains models on each miner's dataset
-- Evaluates performance on a standard test set
-- Computes pairwise comparisons between datasets
-- Distributes rewards based on relative performance
-- Ensures fair competition regardless of dataset size
+- **Efficiency:** LoRA adapts meta-llama/Llama-3.2-1B with minimal parameters (rank=4)
+- **Fairness:** Fixed training config ensures consistent evaluation
+- **Capacity:** Validators can process ~10,000-20,000 rows per dataset on a 4090, depending on token length and epoch timing
+- **Metrics:** Evaluation loss determines dataset quality, with duplicates penalized
 
-## How to Contribute
 
-### Code Review
-
-Project maintainers reserve the right to weigh the opinions of peer reviewers using common sense judgment and may also weigh based on merit. Reviewers that have demonstrated a deeper commitment and understanding of the project over time or who have clear domain expertise may naturally have more weight, as one would expect in all walks of life.
-
-Where a patch set affects consensus-critical code, the bar will be much higher in terms of discussion and peer review requirements, keeping in mind that mistakes could be very costly to the wider community. This includes refactoring of consensus-critical code.
-
-Where a patch set proposes to change the FLockDataset subnet, it must have been discussed extensively on the discord server and other channels, be accompanied by a widely discussed BIP and have a generally widely perceived technical consensus of being a worthwhile change based on the judgment of the maintainers.
-
-That being said, we welcome all PRs for the betterment of the subnet and Bittensor as a whole. We are striving for improvement at every interval and believe through open communication and sharing of ideas will success be attainable.
