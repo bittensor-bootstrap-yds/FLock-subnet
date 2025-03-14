@@ -58,10 +58,19 @@ git clone https://github.com/FLock-io/FLock-subnet.git
 cd FLock-subnet
 ```
 
-### Install dependencies
+### Install dependencies with poetry
+
+1. Install Poetry: 
 
 ```bash
-python3 -m pip install -e .
+curl -sSL https://install.python-poetry.org | python3 -
+```
+
+2. Install Poetry:
+
+```bash
+poetry install
+poetry shell
 ```
 
 ### Set up Hugging Face credentials
@@ -127,7 +136,7 @@ python3 neurons/miner.py \
   --subtensor.network finney \
   --hf_repo_id yourusername/my-dataset \
   --netuid netuid \
-  --dataset_path ./data.jsonl \
+  --dataset_path ./data/data.jsonl \
   --logging.trace
 ```
 
@@ -143,7 +152,6 @@ Replace placeholders:
 - The script uploads data.jsonl to your Hugging Face repo
 - It retrieves a commit hash (e.g., abc123...) and constructs a ModelId (e.g., yourusername/my-dataset:ORIGINAL_COMPETITION_ID:abc123...)
 - It registers this metadata on the Bittensor chain (retrying every 120 seconds if the 20-minute commit cooldown applies)
-- Transaction fee: ~0.01 TAO (varies with network congestion)
 
 **Tips:**
 - Ensure your dataset is unique—validators penalize duplicates
@@ -243,5 +251,4 @@ FLockDataset is a decentralized subnet where miners compete to create high-quali
 - **Fairness:** Fixed training config ensures consistent evaluation
 - **Capacity:** Validators can process ~10,000-20,000 rows per dataset on a 4090, depending on token length and epoch timing
 - **Metrics:** Evaluation loss determines dataset quality, with duplicates penalized
-
 
