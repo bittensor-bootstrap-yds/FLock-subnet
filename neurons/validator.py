@@ -19,7 +19,6 @@ import argparse
 import asyncio
 import torch
 import typing
-import multiprocessing
 import bittensor as bt
 import numpy as np
 from FLockDataset import constants
@@ -46,7 +45,9 @@ class Validator:
             help="Number of miners to sample for each block.",
         )
         parser.add_argument(
-            "--netuid", type=str, help="The subnet UID."
+            "--netuid", 
+            type=int, 
+            help="The subnet UID."
         )
 
         bt.subtensor.add_args(parser)
@@ -58,9 +59,8 @@ class Validator:
 
     def __init__(self):
         self.config = Validator.config()
-        bt.logging(config=self.config)
-        bt.logging.on()
 
+        bt.logging(config=self.config)
         bt.logging.info(f"Starting validator with config: {self.config}")
 
         # === Bittensor objects ====
@@ -76,30 +76,20 @@ class Validator:
         self.rng = np.random.default_rng()    
 
 
-    async def try_sync_metagraph(self, ttl: int) -> bool:
-        def sync_metagraph(endpoint):
-            # Update self.metagraph
-            self.metagraph = bt.subtensor(endpoint).metagraph(self.config.netuid)
-            self.metagraph.save()
 
-        process = multiprocessing.Process(
-            target=sync_metagraph, args=(self.subtensor.chain_endpoint,)
-        )
-        process.start()
-        process.join(timeout=ttl)
-        if process.is_alive():
-            process.terminate()
-            process.join()
-            bt.logging.error(f"Failed to sync metagraph after {ttl} seconds")
+    async def try_sync_metagraph(self) -> bool:
+        bt.logging.trace("Syncing metagraph")
+        try:
+            self.metagraph = self.subtensor.metagraph(self.config.netuid)
+            self.metagraph.save()
+            bt.logging.info("Synced metagraph")
+            return True
+        except Exception as e:
+            bt.logging.error(f"Error syncing metagraph: {e}")
             return False
 
-        bt.logging.info("Synced metagraph")
-        self.metagraph.load()
-
-        return True
-
     async def run_step(self):
-        synced_metagraph = await self.try_sync_metagraph(ttl=60)
+        synced_metagraph = await self.try_sync_metagraph()
         if not synced_metagraph:
             bt.logging.warning("Failed to sync metagraph")
             return
@@ -116,6 +106,7 @@ class Validator:
         for uid in current_uids:
             self.score_db.insert_or_reset_uid(uid, hotkeys[uid])
 
+
         # Update consensus 
         self.weights.copy_(torch.tensor(self.metagraph.C))
         self.consensus = self.metagraph.C
@@ -124,64 +115,64 @@ class Validator:
         else:
             bt.logging.warning("metagraph sync failed: {}".format(self.consensus))
 
-        competition_ids = {uid: "f127" for uid in current_uids}
-
-        for competition in constants.COMPETITION_SCHEDULE:
-            bt.logging.trace(
-                f"Building consensus state for competition {competition.competition_id}"
-            )
-            uids_in_comp = [uid for uid in current_uids if competition_ids[uid] == competition.competition_id]
-            if not uids_in_comp:
-                continue
-
-            sample_size = min(self.config.miner_sample_size, len(uids_in_comp))
-            uids_to_eval = self.rng.choice(uids_in_comp, sample_size, replace=False).tolist()
-            bt.logging.debug(f"UIDs to evaluate: {uids_to_eval}")
-
-            for uid in uids_to_eval: 
-                metadata = retrieve_model_metadata(self.subtensor, self.config.netuid, hotkeys[uid])
-                if metadata is not None: 
-                    try: 
-                        download_dataset(metadata.id.namespace, metadata.id.commit) 
-                        download_dataset(constants.eval_namespace, constants.eval_commit, local_dir="eval_data")
-
-                        lucky_num = int.from_bytes(os.urandom(4), 'little')
-                        eval_loss = train_lora(lucky_num)
-                        if eval_loss < competition.benchmark_loss: 
-                            delta = 1.0 
-                        else: 
-                            delta = 0.0
-                        self.score_db.update_score(uid, delta)
-                        bt.logging.debug(f"UID {uid}: eval_loss={eval_loss}, delta={delta}")
-
-                    except Exception as e: 
-                        bt.logging.error(f"Train error UID {uid}: {e}")
-                    finally: 
-                        clean_cache_folder()
-
-            final_weights = torch.zeros_like(self.weights) 
-            for competition in constants.COMPETITION_SCHEDULE:
-                uids_in_comp = [uid for uid in current_uids if competition_ids[uid] == competition.competition_id]
-                if not uids_in_comp:
-                    continue
-
-                scores = self.score_db.get_scores(uids_in_comp)
-                weights = torch.softmax(torch.tensor(scores), dim=0) # TODO: Replace with method
-                scaled_weights = weights * competition.reward_percentage 
-
-                for uid, weight in zip(uids_in_comp, scaled_weights): 
-                    final_weights[uid] = weight
-
-            adjusted_weights = adjust_for_vtrust(final_weights.cpu().numpy(), self.consensus)
-            set_weights_with_err_msg(
-                subtensor=self.subtensor,
-                wallet=self.wallet,
-                netuid=self.config.netuid,
-                uids=current_uids,
-                weights=adjusted_weights,
-            )
-
-            bt.logging.debug(f"Final adjusted weights: {adjusted_weights}")
+#         competition_ids = {uid: "f127" for uid in current_uids}
+# 
+#         for competition in constants.COMPETITION_SCHEDULE:
+#             bt.logging.trace(
+#                 f"Building consensus state for competition {competition.competition_id}"
+#             )
+#             uids_in_comp = [uid for uid in current_uids if competition_ids[uid] == competition.competition_id]
+#             if not uids_in_comp:
+#                 continue
+# 
+#             sample_size = min(self.config.miner_sample_size, len(uids_in_comp))
+#             uids_to_eval = self.rng.choice(uids_in_comp, sample_size, replace=False).tolist()
+#             bt.logging.debug(f"UIDs to evaluate: {uids_to_eval}")
+# 
+#             for uid in uids_to_eval: 
+#                 metadata = retrieve_model_metadata(self.subtensor, self.config.netuid, hotkeys[uid])
+#                 if metadata is not None: 
+#                     try: 
+#                         download_dataset(metadata.id.namespace, metadata.id.commit) 
+#                         download_dataset(constants.eval_namespace, constants.eval_commit, local_dir="eval_data")
+# 
+#                         lucky_num = int.from_bytes(os.urandom(4), 'little')
+#                         eval_loss = train_lora(lucky_num)
+#                         if eval_loss < competition.benchmark_loss: 
+#                             delta = 1.0 
+#                         else: 
+#                             delta = 0.0
+#                         self.score_db.update_score(uid, delta)
+#                         bt.logging.debug(f"UID {uid}: eval_loss={eval_loss}, delta={delta}")
+# 
+#                     except Exception as e: 
+#                         bt.logging.error(f"Train error UID {uid}: {e}")
+#                     finally: 
+#                         clean_cache_folder()
+# 
+#             final_weights = torch.zeros_like(self.weights) 
+#             for competition in constants.COMPETITION_SCHEDULE:
+#                 uids_in_comp = [uid for uid in current_uids if competition_ids[uid] == competition.competition_id]
+#                 if not uids_in_comp:
+#                     continue
+# 
+#                 scores = self.score_db.get_scores(uids_in_comp)
+#                 weights = torch.softmax(torch.tensor(scores), dim=0) # TODO: Replace with method
+#                 scaled_weights = weights * competition.reward_percentage 
+# 
+#                 for uid, weight in zip(uids_in_comp, scaled_weights): 
+#                     final_weights[uid] = weight
+# 
+#             adjusted_weights = adjust_for_vtrust(final_weights.cpu().numpy(), self.consensus)
+#             set_weights_with_err_msg(
+#                 subtensor=self.subtensor,
+#                 wallet=self.wallet,
+#                 netuid=self.config.netuid,
+#                 uids=current_uids,
+#                 weights=adjusted_weights,
+#             )
+# 
+#             bt.logging.debug(f"Final adjusted weights: {adjusted_weights}")
 
 
 

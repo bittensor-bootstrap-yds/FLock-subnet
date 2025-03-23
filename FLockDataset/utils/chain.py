@@ -17,5 +17,3 @@ def assert_registered(wallet: bt.wallet, metagraph: bt.metagraph) -> int:
     )
     return uid
 
-
-
