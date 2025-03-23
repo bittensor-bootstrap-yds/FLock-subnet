@@ -1,7 +1,6 @@
 from pathlib import Path
 from dataclasses import dataclass
 from typing import List
-import math
 
 # The uid for this subnet.
 # testnet
@@ -26,6 +25,7 @@ COMPETITION_SCHEDULE: List[CompetitionParameters] = [
         competition_id="f127",
     ),
 ]
+
 CONSTANT_ALPHA = 0.2  # enhance vtrust
 timestamp_epsilon = 0.04  # enhance vtrust
 temperature = 0.08
