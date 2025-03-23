@@ -9,7 +9,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from trl import SFTTrainer, SFTConfig
 
 from .dataset import SFTDataCollator, SFTDataset
-from .model_constants import model2template
+from .constants import model2template
 
 api = HfApi()
 
