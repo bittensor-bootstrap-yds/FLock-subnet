@@ -143,3 +143,6 @@ Thumbs.db
 # data/*
 data
 data/*
+
+# db 
+scores.db
