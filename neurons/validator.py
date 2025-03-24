@@ -115,16 +115,16 @@ class Validator:
         else:
             bt.logging.warning("metagraph sync failed: {}".format(self.consensus))
 
-#         competition_ids = {uid: "f127" for uid in current_uids}
-# 
-#         for competition in constants.COMPETITION_SCHEDULE:
-#             bt.logging.trace(
-#                 f"Building consensus state for competition {competition.competition_id}"
-#             )
-#             uids_in_comp = [uid for uid in current_uids if competition_ids[uid] == competition.competition_id]
-#             if not uids_in_comp:
-#                 continue
-# 
+        competition_ids = {uid: "f127" for uid in current_uids}
+
+        for competition in constants.COMPETITION_SCHEDULE:
+            bt.logging.trace(
+                f"Building consensus state for competition {competition.competition_id}"
+            )
+            uids_in_comp = [uid for uid in current_uids if competition_ids[uid] == competition.competition_id]
+            if not uids_in_comp:
+                continue
+
 #             sample_size = min(self.config.miner_sample_size, len(uids_in_comp))
 #             uids_to_eval = self.rng.choice(uids_in_comp, sample_size, replace=False).tolist()
 #             bt.logging.debug(f"UIDs to evaluate: {uids_to_eval}")
