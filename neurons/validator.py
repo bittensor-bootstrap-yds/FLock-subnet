@@ -20,13 +20,14 @@ import asyncio
 import torch
 import typing
 import bittensor as bt
+import math
 import numpy as np
 from FLockDataset import constants
 from FLockDataset.utils.chain import assert_registered, read_chain_commitment
 from FLockDataset.validator.chain import retrieve_model_metadata, set_weights_with_err_msg
-from FLockDataset.validator.validator_utils import EvalQueue, compute_wins, adjust_for_vtrust
+from FLockDataset.validator.validator_utils import compute_score, adjust_for_vtrust
 from FLockDataset.validator.trainer import train_lora, download_dataset, clean_cache_folder
-from FLockDataset.validator.database import ScoreDB  # New database module
+from FLockDataset.validator.database import ScoreDB  
 
 class Validator:
     @staticmethod
@@ -75,8 +76,6 @@ class Validator:
         self.score_db = ScoreDB("scores.db")
         self.rng = np.random.default_rng()    
 
-
-
     async def try_sync_metagraph(self) -> bool:
         bt.logging.trace("Syncing metagraph")
         try:
@@ -96,18 +95,20 @@ class Validator:
 
         current_uids = self.metagraph.uids.tolist()
         hotkeys = self.metagraph.hotkeys
+
+        base_score = 1.0/255.0  # Default initial weight
         for uid in current_uids:
-            self.score_db.insert_or_reset_uid(uid, hotkeys[uid])
+            self.score_db.insert_or_reset_uid(uid, hotkeys[uid], base_score)
 
-        # Update weights from consensus
-        self.weights.copy_(torch.tensor(self.metagraph.C))
+        db_scores = self.score_db.get_scores(current_uids)
+        self.weights = torch.tensor(db_scores, dtype=torch.float32)
+        print(f"Initial weights: {self.weights}")
+        exit(0)
+
+        
         self.consensus = self.metagraph.C
-        if synced_metagraph:
-            bt.logging.info("metagraph sync success: {}".format(self.consensus))
-        else:
-            bt.logging.warning("metagraph sync failed: {}".format(self.consensus))
+        bt.logging.debug(f"Consensus: {self.consensus}")
 
-        # get competition info
         competition = read_chain_commitment(constants.SUBNET_OWNER_HOTKEY, self.subtensor, self.config.netuid)
         if competition is None:
             bt.logging.error("Failed to read competition commitment")
@@ -119,12 +120,9 @@ class Validator:
         uids_to_eval = self.rng.choice(competitors, sample_size, replace=False).tolist()
         bt.logging.debug(f"UIDs to evaluate: {uids_to_eval}")
 
-        hotkeys_to_eval = [self.metagraph.hotkeys[uid] for uid in uids_to_eval]
         scores_per_uid = {uid: None for uid in uids_to_eval}
         metadata_per_uid = {uid: None for uid in uids_to_eval}
         block_per_uid = {uid: None for uid in uids_to_eval}
-        is_duplicate = []
-
         lucky_num = int.from_bytes(os.urandom(4), 'little')
 
         for uid in uids_to_eval: 
@@ -147,113 +145,77 @@ class Validator:
                 scores_per_uid[uid] = 0
 
 
-        is_duplicate = []
-        for i, uid_i in enumerate(uids_to_eval):
-            if scores_per_uid[uid_i] == 0 or uid_i in is_duplicate:
-                continue
-                
-            for j, uid_j in enumerate(uids_to_eval[i+1:], i+1):
-                if scores_per_uid[uid_j] == 0 or uid_j in is_duplicate:
+            duplicate_groups = []
+            processed_uids = set()
+
+            for uid_i, score_i in scores_per_uid.items():
+                if score_i == 0 or uid_i in processed_uids:
                     continue
                     
-                # Check if scores are nearly identical
-                if math.isclose(scores_per_uid[uid_i], scores_per_uid[uid_j], rel_tol=1e-9):
-                    # Determine which is the duplicate based on block number
-                    if block_per_uid[uid_i] > block_per_uid[uid_j]:
-                        is_duplicate.append(uid_j)
-                    else:
-                        is_duplicate.append(uid_i)
-                        break  # No need to check further for uid_i
+                # Find all UIDs with nearly identical scores
+                similar_uids = [uid_i]
+                for uid_j, score_j in scores_per_uid.items():
+                    if uid_i != uid_j and score_j != 0 and uid_j not in processed_uids:
+                        if math.isclose(score_i, score_j, rel_tol=1e-9):
+                            similar_uids.append(uid_j)
+                
+                # If we found duplicates, add them to a group
+                if len(similar_uids) > 1:
+                    duplicate_groups.append(similar_uids)
+                    processed_uids.update(similar_uids)
+
+            duplicates = set()
+            for group in duplicate_groups:
+                group.sort(key=lambda uid: block_per_uid[uid])
+                
+                for uid in group[1:]:
+                    duplicates.add(uid)
+                    scores_per_uid[uid] = 0  
+
+            normalized_scores = {}
+            for uid in uids_to_eval: 
+                if scores_per_uid[uid] != 0: 
+                    normalized_scores = compute_score(scores_per_uid[uid], competition.bench)
+                else: 
+                    normalized_scores[uid] = 0
+            bt.logging.debug(f"Normalized scores: {normalized_scores}")
+
+            new_weights = torch.zeros_like(self.weights)
+            for uid, score in normalized_scores.items():
+                new_weights[uid] = score
 
 
+            lr = constants.lr
+            interpolated_weights = (1 - lr) * self.weights + lr * new_weights
+            
+            consensus_alpha = constants.CONSTANT_ALPHA
+            C_normalized = torch.tensor(self.consensus / max(self.consensus.sum(), 1e-8)).nan_to_num(0.0)
+            blended_weights = (1 - consensus_alpha) * interpolated_weights + consensus_alpha * C_normalized
+            blended_weights = blended_weights.nan_to_num(0.0)
+            
+            adjusted_weights = adjust_for_vtrust(blended_weights.cpu().numpy(), self.consensus)
+            adjusted_weights = torch.tensor(adjusted_weights, dtype=torch.float32)
 
+            for uid in uids_to_eval:
+                if uid < len(adjusted_weights):  
+                    final_weight = adjusted_weights[uid].item()
+                    current_score = self.weights[uid].item()  
+                    delta = final_weight - current_score
+                    self.score_db.update_score(uid, delta)
 
+            self.weights = adjusted_weights
+            bt.logging.debug(f'New weights: {new_weights}')
+            bt.logging.debug(f'Interpolated weights: {interpolated_weights}')
+            bt.logging.debug(f'Consensus: {self.consensus}')
+            bt.logging.debug(f'Final adjusted weights: {adjusted_weights}')
 
-
-
-#             consensus_map = {uid: self.weights[uid].item() for uid in consensus}
-#             bt.logging.info(
-#                 f"Consensus for competition {competition.competition_id}: {consensus_map}"
-#             )
-
-# 
-#             # Sync the first few models, we can sync the rest while running.
-# 
-#             uids_to_sync = list(uids_to_eval)[:self.config.miner_sample_size]
-#             hotkeys = [self.metagraph.hotkeys[uid] for uid in uids_to_sync]
-# 
-#             print(f"hotkeys: {hotkeys}")
-#             scores_per_uid = {uid: None for uid in uids_to_sync}
-#             metadata_per_uid = {uid: None for uid in uids_to_sync}
-#             block_per_uid = {uid: None for uid in uids_to_sync}
-#             is_duplicate = []
-#             lucky_num = int.from_bytes(os.urandom(4), 'little')
-#             for uid in uids_to_sync:
-#                 metadata = retrieve_model_metadata(self.subtensor, self.config.netuid, self.metagraph.hotkeys[uid])
-#                 print(f"uid: {uid}")
-#                 print(f"results: {metadata}")
-#                 if metadata is not None:
-#                     try:
-#                         download_dataset(metadata.id.namespace, metadata.id.commit)
-#                         download_dataset(constants.eval_namespace, constants.eval_commit, local_dir="eval_data")
-#                         eval_loss = train_lora(lucky_num)
-#                         other_uid = [k for k, v in scores_per_uid.items() if
-#                                      v is not None and math.isclose(eval_loss, v, rel_tol=1e-9)]
-# 
-#                         # check if duplicate
-#                         for range_id in other_uid:
-#                             if metadata_per_uid[range_id].block > metadata.block:
-#                                 is_duplicate.append(range_id)
-#                             else:
-#                                 is_duplicate.append(uid)
-# 
-#                         metadata_per_uid[uid] = metadata
-#                         scores_per_uid[uid] = eval_loss
-#                         block_per_uid[uid] = metadata.block
-#                     except Exception as e:
-#                         bt.logging.error(f"train error: {e}")
-#                         scores_per_uid[uid] = 0
-#                     finally:
-#                         clean_cache_folder()
-#                 else:
-#                     scores_per_uid[uid] = 0
-#             uids_whitelist = [item for item in uids_to_sync if item not in is_duplicate]
-#             wins, win_rate = compute_wins(
-#                 uids_whitelist, scores_per_uid,
-#                 block_per_uid
-#             )
-#             model_weights = torch.tensor(
-#                 [win_rate[uid] for uid in win_rate.keys()], dtype=torch.float32
-#             )
-#             step_weights = torch.softmax(model_weights / constants.temperature, dim=0)
-#             new_weights = torch.zeros_like(self.weights)
-#             for i, uid_i in enumerate(win_rate.keys()):
-#                 new_weights[uid_i] = step_weights[i]
-# 
-#             consensus_alpha = constants.CONSTANT_ALPHA
-#             lr = constants.lr
-#             self.weights = (
-#                     (1 - lr) * self.weights + lr * new_weights
-#             )
-#             # To prevent the weights from completely diverging from consensus, blend in the consensus weights.
-#             C_normalized = torch.tensor(self.consensus / self.consensus.sum()).nan_to_num(0.0)
-#             self.weights = (1 - consensus_alpha) * self.weights + consensus_alpha * C_normalized
-#             self.weights = self.weights.nan_to_num(0.0)
-#             adjusted_weights = adjust_for_vtrust(self.weights.cpu().numpy(), self.consensus)
-#             adjusted_weights = torch.tensor(adjusted_weights, dtype=torch.float32)
-# 
-#             bt.logging.debug(f'new weights: {new_weights}')
-#             bt.logging.debug(f'self weights: {self.weights}')
-#             bt.logging.debug(f'consensus: {self.consensus}')
-#             bt.logging.debug(f'adjusted_weights: {adjusted_weights}')
-# 
-#             set_weights_with_err_msg(
-#                 subtensor=self.subtensor,
-#                 wallet=self.wallet,
-#                 netuid=self.config.netuid,
-#                 uids=self.metagraph.uids,
-#                 weights=adjusted_weights,
-#             )
+            set_weights_with_err_msg(
+                subtensor=self.subtensor,
+                wallet=self.wallet,
+                netuid=self.config.netuid,
+                uids=self.metagraph.uids,
+                weights=adjusted_weights,
+            )
 
 
     async def run(self):

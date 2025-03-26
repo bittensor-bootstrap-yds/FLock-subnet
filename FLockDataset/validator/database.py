@@ -13,13 +13,14 @@ class ScoreDB:
                      (uid INTEGER, hotkey TEXT, score REAL, PRIMARY KEY (uid, hotkey))''')
         self.conn.commit()
 
-    def insert_or_reset_uid(self, uid: int, hotkey: str):
+    def insert_or_reset_uid(self, uid: int, hotkey: str, base_score: float = 1.0/255.0):
         """Insert a new UID or reset its score if the hotkey has changed (UID recycled)."""
         c = self.conn.cursor()
         c.execute("SELECT hotkey FROM miner_scores WHERE uid = ?", (uid,))
         result = c.fetchone()
         if result is None or result[0] != hotkey:
-            c.execute("INSERT OR REPLACE INTO miner_scores (uid, hotkey, score) VALUES (?, ?, 0.0)", (uid, hotkey))
+            c.execute("INSERT OR REPLACE INTO miner_scores (uid, hotkey, score) VALUES (?, ?, ?)", 
+                     (uid, hotkey, base_score))
         self.conn.commit()
 
     def update_score(self, uid: int, delta: float):
