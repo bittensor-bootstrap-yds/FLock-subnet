@@ -10,7 +10,7 @@ def node():
 def test_read_chain_commitment(node):
     """Test reading commitment data from another neuron on the chain"""
     target_hotkey = "5Cex1UGEN6GZBcSBkWXtrerQ6Zb7h8eD7oSe9eDyZmj4doWu"  
-    subnet_uid = 271
+    subnet_uid = 257
     
     print(f"Reading data for hotkey: {target_hotkey}")
     

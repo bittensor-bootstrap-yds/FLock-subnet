@@ -1,13 +1,10 @@
 from pathlib import Path
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import Optional
 
-# The uid for this subnet.
-# testnet
-SUBNET_UID = 257
-# The start block of this subnet
 ROOT_DIR = Path(__file__).parent.parent
-
+SUBNET_OWNER_HOTKEY = "5Cex1UGEN6GZBcSBkWXtrerQ6Zb7h8eD7oSe9eDyZmj4doWu" # EXAMPLE
+SUBNET_UID = 257 # Testnet
 
 @dataclass
 class Competition:
@@ -37,8 +34,6 @@ temperature = 0.08
 
 # validator weight moving average term. alpha = 1-lr.
 lr = 0.2
-
-ORIGINAL_COMPETITION_ID = "f127"
 
 # eval dataset huggingface
 eval_namespace = "xiaofengzi/flcok_test"
