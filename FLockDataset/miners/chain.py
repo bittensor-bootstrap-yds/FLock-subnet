@@ -1,12 +1,10 @@
 import bittensor as bt
-import inspect
 import functools
 import multiprocessing
 import asyncio
 import time
 from typing import Optional, Any
 
-# Create a bittensor wallet and subtensor
 wallet = bt.wallet()
 subtensor = bt.subtensor()
 print(wallet.coldkey.ss58_address)
