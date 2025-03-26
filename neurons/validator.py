@@ -35,7 +35,7 @@ class Validator:
         parser.add_argument(
             "--blocks_per_epoch",
             type=int,
-            default=100,
+            default=360,
             help="Number of blocks to wait before setting weights.",
         )
         parser.add_argument(
@@ -106,7 +106,6 @@ class Validator:
         for uid in current_uids:
             self.score_db.insert_or_reset_uid(uid, hotkeys[uid])
 
-
         # Update consensus 
         self.weights.copy_(torch.tensor(self.metagraph.C))
         self.consensus = self.metagraph.C
@@ -125,10 +124,10 @@ class Validator:
             if not uids_in_comp:
                 continue
 
-#             sample_size = min(self.config.miner_sample_size, len(uids_in_comp))
-#             uids_to_eval = self.rng.choice(uids_in_comp, sample_size, replace=False).tolist()
-#             bt.logging.debug(f"UIDs to evaluate: {uids_to_eval}")
-# 
+            sample_size = min(self.config.miner_sample_size, len(uids_in_comp))
+            uids_to_eval = self.rng.choice(uids_in_comp, sample_size, replace=False).tolist()
+            bt.logging.debug(f"UIDs to evaluate: {uids_to_eval}")
+
 #             for uid in uids_to_eval: 
 #                 metadata = retrieve_model_metadata(self.subtensor, self.config.netuid, hotkeys[uid])
 #                 if metadata is not None: 
@@ -173,7 +172,6 @@ class Validator:
 #             )
 # 
 #             bt.logging.debug(f"Final adjusted weights: {adjusted_weights}")
-
 
 
 # TODO: figure out what needs to stay 
@@ -269,6 +267,7 @@ class Validator:
 #                 uids=self.metagraph.uids,
 #                 weights=adjusted_weights,
 #             )
+
 
     async def run(self):
         while True:

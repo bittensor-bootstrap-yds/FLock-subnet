@@ -1,6 +1,6 @@
 from pathlib import Path
 from dataclasses import dataclass
-from typing import List
+from typing import List, Optional
 
 # The uid for this subnet.
 # testnet
@@ -10,21 +10,26 @@ ROOT_DIR = Path(__file__).parent.parent
 
 
 @dataclass
-class CompetitionParameters:
+class Competition:
     """Class defining model parameters"""
+    id: str
+    bench: float
 
-    # Reward percentage
-    reward_percentage: float
-    # Competition id
-    competition_id: str
+    @classmethod
+    def from_dict(cls, data: dict) -> Optional['Competition']:
+        """Create a ChainCommitment from a dictionary"""
+        if not data:
+            return None
+        
+        try:
+            return cls(
+                id=data.get('id', 0),
+                bench=data.get('bench', 0)
+            )
+        except Exception as e:
+            print(f"Error creating ChainCommitment from dict: {e}")
+            return None
 
-
-COMPETITION_SCHEDULE: List[CompetitionParameters] = [
-    CompetitionParameters(
-        reward_percentage=1.0,
-        competition_id="f127",
-    ),
-]
 
 CONSTANT_ALPHA = 0.2  # enhance vtrust
 timestamp_epsilon = 0.04  # enhance vtrust
