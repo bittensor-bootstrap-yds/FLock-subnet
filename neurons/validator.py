@@ -25,7 +25,7 @@ import numpy as np
 from FLockDataset import constants
 from FLockDataset.utils.chain import assert_registered, read_chain_commitment
 from FLockDataset.validator.chain import retrieve_model_metadata, set_weights_with_err_msg
-from FLockDataset.validator.validator_utils import compute_score, adjust_for_vtrust
+from FLockDataset.validator.validator_utils import compute_score
 from FLockDataset.validator.trainer import train_lora, download_dataset, clean_cache_folder
 from FLockDataset.validator.database import ScoreDB  
 
@@ -102,10 +102,6 @@ class Validator:
 
         db_scores = self.score_db.get_scores(current_uids)
         self.weights = torch.tensor(db_scores, dtype=torch.float32)
-        print(f"Initial weights: {self.weights}")
-        exit(0)
-
-        
         self.consensus = self.metagraph.C
         bt.logging.debug(f"Consensus: {self.consensus}")
 
@@ -183,40 +179,25 @@ class Validator:
             new_weights = torch.zeros_like(self.weights)
             for uid, score in normalized_scores.items():
                 new_weights[uid] = score
-
-
-            lr = constants.lr
-            interpolated_weights = (1 - lr) * self.weights + lr * new_weights
             
-            consensus_alpha = constants.CONSTANT_ALPHA
-            C_normalized = torch.tensor(self.consensus / max(self.consensus.sum(), 1e-8)).nan_to_num(0.0)
-            blended_weights = (1 - consensus_alpha) * interpolated_weights + consensus_alpha * C_normalized
-            blended_weights = blended_weights.nan_to_num(0.0)
-            
-            adjusted_weights = adjust_for_vtrust(blended_weights.cpu().numpy(), self.consensus)
-            adjusted_weights = torch.tensor(adjusted_weights, dtype=torch.float32)
-
             for uid in uids_to_eval:
-                if uid < len(adjusted_weights):  
-                    final_weight = adjusted_weights[uid].item()
+                if uid < len(new_weights):  
+                    final_weight = new_weights[uid].item()
                     current_score = self.weights[uid].item()  
                     delta = final_weight - current_score
                     self.score_db.update_score(uid, delta)
 
-            self.weights = adjusted_weights
+            self.weights = new_weights
             bt.logging.debug(f'New weights: {new_weights}')
-            bt.logging.debug(f'Interpolated weights: {interpolated_weights}')
             bt.logging.debug(f'Consensus: {self.consensus}')
-            bt.logging.debug(f'Final adjusted weights: {adjusted_weights}')
 
             set_weights_with_err_msg(
                 subtensor=self.subtensor,
                 wallet=self.wallet,
                 netuid=self.config.netuid,
                 uids=self.metagraph.uids,
-                weights=adjusted_weights,
+                weights=new_weights,
             )
-
 
     async def run(self):
         while True:
