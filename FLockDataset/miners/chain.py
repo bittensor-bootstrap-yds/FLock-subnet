@@ -1,13 +1,8 @@
 import bittensor as bt
 import functools
 import multiprocessing
-import asyncio
 import time
 from typing import Optional, Any
-
-wallet = bt.wallet()
-subtensor = bt.subtensor()
-print(wallet.coldkey.ss58_address)
 
 def run_in_subprocess(func: functools.partial, ttl: int) -> Any:
     """Runs the provided function on a subprocess with 'ttl' seconds to complete."""
@@ -64,7 +59,7 @@ def run_in_subprocess(func: functools.partial, ttl: int) -> Any:
     except Exception as e:
         raise Exception(f"Failed to get result from subprocess: {str(e)}")
 
-def debug_commit_process(func, wallet, subnet_uid, data):
+def debug_commit_process(func, wallet, subtensor, subnet_uid, data):
     """A simplified version that tries to debug the commit process without subprocesses"""
     print(f"Attempting direct commit call with subnet_uid: {subnet_uid}, data length: {len(data)}")
     try:
@@ -111,7 +106,7 @@ async def store_model_metadata(subtensor: bt.subtensor,
     try:
         # Try a simpler approach without subprocess first
         print("Attempting direct commit first for debugging...")
-        result = debug_commit_process(subtensor.commit, wallet, subnet_uid, data)
+        result = debug_commit_process(subtensor.commit, wallet, subtensor, subnet_uid, data)
         print(f"Direct commit succeeded with result: {result}")
         return result
     except Exception as e:
@@ -143,38 +138,3 @@ async def store_model_metadata(subtensor: bt.subtensor,
         print("4. Make sure your wallet has enough balance for network fees")
         raise e
 
-# Example function to use the wallet and subtensor with store_model_metadata
-async def store_example_metadata():
-    subnet_uid = "1"  # Example subnet ID - replace with your actual subnet ID
-    metadata = "Example model metadata"  # Replace with your actual metadata
-    
-    print(f"\n--- Attempting to store metadata ---")
-    print(f"Subnet UID: {subnet_uid}")
-    print(f"Metadata: {metadata}")
-    
-    try:
-        start_time = time.time()
-        await store_model_metadata(subtensor, wallet, subnet_uid, metadata)
-        elapsed = time.time() - start_time
-        print(f"Successfully stored metadata in {elapsed:.2f} seconds")
-    except Exception as e:
-        print(f"Failed to store metadata: {str(e)}")
-
-# Main execution function to run async code
-async def main():
-    # Print wallet info
-    print(f"Using wallet with address: {wallet.coldkey.ss58_address}")
-    
-    # Print subtensor connection info
-    try:
-        print(f"Connected to network: {subtensor.network}")
-        print(f"Subtensor URL: {subtensor.chain_endpoint}")
-    except Exception as e:
-        print(f"Failed to get subtensor info: {str(e)}")
-    
-    # Store example metadata
-    await store_example_metadata()
-
-# Run the async main function
-if __name__ == "__main__":
-    asyncio.run(main())
