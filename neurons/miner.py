@@ -2,9 +2,10 @@ import time
 import asyncio
 import argparse
 import bittensor as bt
+from typing import Optional
 
 from FLockDataset import constants
-from FLockDataset.utils.chain import assert_registered
+from FLockDataset.utils.chain import assert_registered, read_chain_commitment, Competition
 from FLockDataset.miners import model, chain
 from FLockDataset.miners.data import ModelId
 from dotenv import load_dotenv
@@ -53,8 +54,13 @@ async def main(config: bt.config):
 
     commit_id = model.upload_data(config.hf_repo_id, config.dataset_path)
 
+    competition: Optional[Competition] = read_chain_commitment(constants.SUBNET_OWNER_HOTKEY, subtensor, config.netuid)
+    if competition is None:
+        bt.logging.error("Failed to read competition commitment")
+        return
+
     model_id_with_commit = ModelId(namespace=config.hf_repo_id, commit=commit_id,
-                                   competition_id=constants.ORIGINAL_COMPETITION_ID)
+                                   competition_id=competition.id)
     bt.logging.success(f"Now committing to the chain with model_id: {model_id_with_commit}")
     print(f"Now committing to the chain with model_id: {model_id_with_commit}")
 

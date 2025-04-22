@@ -12,7 +12,7 @@ class Competition:
     """Class defining model parameters"""
     id: str
     bench: float
-
+    
     @classmethod
     def from_dict(cls, data: dict) -> Optional['Competition']:
         """Create a ChainCommitment from a dictionary"""
@@ -21,13 +21,12 @@ class Competition:
         
         try:
             return cls(
-                id=data.get('id', 0),
+                id=str(data.get('id', 0)),  # Convert to string
                 bench=data.get('bench', 0)
             )
         except Exception as e:
             print(f"Error creating ChainCommitment from dict: {e}")
             return None
-
 
 CONSTANT_ALPHA = 0.2  # enhance vtrust
 timestamp_epsilon = 0.04  # enhance vtrust
