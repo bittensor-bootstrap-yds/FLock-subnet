@@ -10,7 +10,7 @@ def retrieve_model_metadata(subtensor: bt.subtensor, subnet_uid: int, hotkey: st
     """Retrieves model metadata on this subnet for specific hotkey"""
 
     metadata = bt.core.extrinsics.serving.get_metadata(subtensor, subnet_uid, hotkey)
-    print(f"metadata: {metadata}")
+    bt.logging.debug(f"metadata: {metadata}")
     if not metadata:
         return None
 
