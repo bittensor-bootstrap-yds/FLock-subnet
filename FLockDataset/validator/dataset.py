@@ -94,7 +94,7 @@ class SFTDataCollator(object):
             attention_mask = x["attention_mask"]
             target_mask = x["target_mask"]
             if input_ids is None:
-                print("some input_ids is None")
+                bt.logging.debug("some input_ids is None")
                 continue
             padding_len = batch_max_len - len(input_ids)
             # Pad

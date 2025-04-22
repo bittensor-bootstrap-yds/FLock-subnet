@@ -24,8 +24,7 @@ class Competition:
                 id=str(data.get('id', 0)),  # Convert to string
                 bench=data.get('bench', 0)
             )
-        except Exception as e:
-            print(f"Error creating ChainCommitment from dict: {e}")
+        except Exception:
             return None
 
 CONSTANT_ALPHA = 0.2  # enhance vtrust

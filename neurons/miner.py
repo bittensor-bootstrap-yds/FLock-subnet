@@ -62,7 +62,7 @@ async def main(config: bt.config):
     model_id_with_commit = ModelId(namespace=config.hf_repo_id, commit=commit_id,
                                    competition_id=competition.id)
     bt.logging.success(f"Now committing to the chain with model_id: {model_id_with_commit}")
-    print(f"Now committing to the chain with model_id: {model_id_with_commit}")
+    bt.logging.debug(f"Now committing to the chain with model_id: {model_id_with_commit}")
 
     # We can only commit to the chain every 20 minutes, so run this in a loop, until successful.
     while True:
@@ -83,6 +83,5 @@ async def main(config: bt.config):
 
 
 if __name__ == "__main__":
-    # Parse and print configuration
     config = get_config()
     asyncio.run(main(config))
