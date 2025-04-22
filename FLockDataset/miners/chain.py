@@ -23,7 +23,7 @@ def run_in_subprocess(func: functools.partial, ttl: int) -> Any:
     log_queue = ctx.Queue()
     process = ctx.Process(target=wrapped_func, args=[func, queue, log_queue])
     
-    print(f"Starting subprocess for {func.func.__name__}")
+    bt.logging.info(f"Starting subprocess for {func.func.__name__}")
     process.start()
     
     # Monitor the process and collect logs
@@ -31,13 +31,13 @@ def run_in_subprocess(func: functools.partial, ttl: int) -> Any:
     while process.is_alive() and time.time() < timeout:
         try:
             while not log_queue.empty():
-                print(log_queue.get(block=False))
+                bt.logging.info(log_queue.get(block=False))
             time.sleep(0.5)
         except Exception:
             pass
     
     if process.is_alive():
-        print(f"Process for {func.func.__name__} timed out after {ttl} seconds. Terminating...")
+        bt.logging.warning(f"Process for {func.func.__name__} timed out after {ttl} seconds. Terminating...")
         process.terminate()
         process.join()
         raise TimeoutError(f"Failed to {func.func.__name__} after {ttl} seconds")
@@ -45,7 +45,7 @@ def run_in_subprocess(func: functools.partial, ttl: int) -> Any:
     # Collect any remaining logs
     while not log_queue.empty():
         try:
-            print(log_queue.get(block=False))
+            bt.logging.info(log_queue.get(block=False))
         except Exception:
             pass
     
@@ -61,16 +61,16 @@ def run_in_subprocess(func: functools.partial, ttl: int) -> Any:
 
 def debug_commit_process(func, wallet, subtensor, subnet_uid, data):
     """A simplified version that tries to debug the commit process without subprocesses"""
-    print(f"Attempting direct commit call with subnet_uid: {subnet_uid}, data length: {len(data)}")
+    bt.logging.info(f"Attempting direct commit call with subnet_uid: {subnet_uid}, data length: {len(data)}")
     try:
         # First check if we can ping the endpoint
-        print(f"Chain endpoint: {subtensor.chain_endpoint}")
+        bt.logging.info(f"Chain endpoint: {subtensor.chain_endpoint}")
         result = func(wallet, subnet_uid, data)
-        print(f"Commit result: {result}")
+        bt.logging.info(f"Commit result: {result}")
         return result
     except Exception as e:
-        print(f"Direct commit error: {str(e)}")
-        print(f"Exception type: {type(e)}")
+        bt.logging.error(f"Direct commit error: {str(e)}")
+        bt.logging.debug(f"Exception type: {type(e)}")
         raise e
 
 async def store_model_metadata(subtensor: bt.subtensor,
@@ -80,38 +80,38 @@ async def store_model_metadata(subtensor: bt.subtensor,
     if wallet is None:
         raise ValueError("No wallet available to write to the chain.")
     
-    print(f"Preparing to commit metadata to subnet {subnet_uid}")
-    print(f"Wallet hotkey: {wallet.hotkey.ss58_address if hasattr(wallet, 'hotkey') else 'Not available'}")
-    print(f"Wallet coldkey: {wallet.coldkey.ss58_address}")
+    bt.logging.info(f"Preparing to commit metadata to subnet {subnet_uid}")
+    bt.logging.debug(f"Wallet hotkey: {wallet.hotkey.ss58_address if hasattr(wallet, 'hotkey') else 'Not available'}")
+    bt.logging.debug(f"Wallet coldkey: {wallet.coldkey.ss58_address}")
     
     # Get network status before committing
     try:
-        print("Checking network status...")
+        bt.logging.info("Checking network status...")
         # Use proper Bittensor API calls - adjust based on available methods
-        print(f"Network: {subtensor.network}")
-        print(f"Chain endpoint: {subtensor.chain_endpoint}")
+        bt.logging.debug(f"Network: {subtensor.network}")
+        bt.logging.debug(f"Chain endpoint: {subtensor.chain_endpoint}")
     except Exception as e:
-        print(f"Failed to get network status: {str(e)}")
+        bt.logging.error(f"Failed to get network status: {str(e)}")
     
     # Check if subnet exists and if wallet is registered
     try:
-        print("Checking subnets...")
+        bt.logging.info("Checking subnets...")
         subnets = subtensor.get_subnets()
-        print(f"Available subnets: {[net.netuid for net in subnets]}")
-        subnet_exists = any(str(net.netuid) == subnet_uid for net in subnets)
-        print(f"Subnet {subnet_uid} exists: {subnet_exists}")
+        # Check if subnet_uid is in subnets directly
+        subnet_exists = int(subnet_uid) in subnets if subnets else False
+        bt.logging.info(f"Subnet {subnet_uid} exists: {subnet_exists}")
     except Exception as e:
-        print(f"Failed to check subnet existence: {str(e)}")
+        bt.logging.error(f"Failed to check subnet existence: {str(e)}")
     
     try:
         # Try a simpler approach without subprocess first
-        print("Attempting direct commit first for debugging...")
+        bt.logging.info("Attempting direct commit first for debugging...")
         result = debug_commit_process(subtensor.commit, wallet, subtensor, subnet_uid, data)
-        print(f"Direct commit succeeded with result: {result}")
+        bt.logging.success(f"Direct commit succeeded with result: {result}")
         return result
     except Exception as e:
-        print(f"Direct commit failed: {str(e)}")
-        print("Falling back to subprocess approach...")
+        bt.logging.error(f"Direct commit failed: {str(e)}")
+        bt.logging.info("Falling back to subprocess approach...")
     
     # Wrap calls to the subtensor in a subprocess with a timeout to handle potential hangs.
     partial = functools.partial(
@@ -121,20 +121,19 @@ async def store_model_metadata(subtensor: bt.subtensor,
         data,
     )
     
-    print(f"Committing metadata to subnet {subnet_uid} with timeout of 60 seconds...")
+    bt.logging.info(f"Committing metadata to subnet {subnet_uid} with timeout of 60 seconds...")
     try:
         return run_in_subprocess(partial, 60)
     except Exception as e:
-        print("\nDiagnostic information:")
-        print("1. Error received:", str(e))
-        print("2. The 'no close frame received or sent' error suggests a WebSocket connection issue")
-        print("3. This typically happens when the connection to the Bittensor network is interrupted")
+        bt.logging.error("Diagnostic information:")
+        bt.logging.error(f"1. Error received: {str(e)}")
+        bt.logging.error("2. The 'no close frame received or sent' error suggests a WebSocket connection issue")
+        bt.logging.error("3. This typically happens when the connection to the Bittensor network is interrupted")
         
         # Suggest possible solutions
-        print("\nPossible solutions:")
-        print("1. Check your internet connection")
-        print("2. Try a different chain endpoint using: subtensor = bt.subtensor(chain_endpoint='wss://...')")
-        print("3. Ensure your subnet_uid is correct")
-        print("4. Make sure your wallet has enough balance for network fees")
+        bt.logging.info("Possible solutions:")
+        bt.logging.info("1. Check your internet connection")
+        bt.logging.info("2. Try a different chain endpoint using: subtensor = bt.subtensor(chain_endpoint='wss://...')")
+        bt.logging.info("3. Ensure your subnet_uid is correct")
+        bt.logging.info("4. Make sure your wallet has enough balance for network fees")
         raise e
-
