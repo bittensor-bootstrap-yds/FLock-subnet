@@ -49,7 +49,7 @@ def clean_cache_folder():
         pass
 
 
-def train_lora(lucky_num: int, cache_dir: str = None) -> float:
+def train_lora(lucky_num: int, cache_dir: str = None, data_dir: str = "data", eval_data_dir: str = "eval_data") -> float:
     if cache_dir:
         os.makedirs(cache_dir, exist_ok=True)
         # Set environment variable for this process
@@ -125,7 +125,8 @@ def train_lora(lucky_num: int, cache_dir: str = None) -> float:
 
     # Load dataset
     dataset = SFTDataset(
-        file="data/data.jsonl",
+        file=os.path.join(data_dir, "data.jsonl"),
+
         tokenizer=tokenizer,
         max_seq_length=context_length,
         template=model2template[model_id],
@@ -134,6 +135,23 @@ def train_lora(lucky_num: int, cache_dir: str = None) -> float:
     if len(dataset) > constants.EVAL_SIZE: 
         bt.logging.info(f"Dataset has {len(dataset)} examples, expected {constants.EVAL_SIZE}, cheater detected")
         return 9999999999999999
+
+    eval_file_path = os.path.join(eval_data_dir, "eval_data.jsonl")
+    if not os.path.exists(eval_file_path):
+        # Look for any jsonl file in the eval directory
+        jsonl_files = []
+        for root, dirs, files in os.walk(eval_data_dir):
+            for file in files:
+                if file.endswith(".jsonl"):
+                    jsonl_files.append(os.path.join(root, file))
+        
+        if jsonl_files:
+            # Use the first jsonl file found
+            eval_file_path = jsonl_files[0]
+            bt.logging.info(f"Using evaluation file: {eval_file_path}")
+        else:
+            bt.logging.error(f"No evaluation file found in {eval_data_dir}")
+            return constants.BASELINE_LOSS
 
     eval_dataset = SFTDataset(
         file="eval_data/eval_data.jsonl",
