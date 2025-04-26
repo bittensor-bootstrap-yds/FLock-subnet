@@ -5,7 +5,6 @@ from typing import Optional
 from typing import Optional, Tuple, Union
 from bittensor.core.extrinsics.set_weights import set_weights_extrinsic
 
-
 def retrieve_model_metadata(subtensor: bt.subtensor, subnet_uid: int, hotkey: str) -> Optional[ModelMetadata]:
     """Retrieves model metadata on this subnet for specific hotkey"""
     metadata = bt.core.extrinsics.serving.get_metadata(subtensor, subnet_uid, hotkey)
@@ -15,32 +14,40 @@ def retrieve_model_metadata(subtensor: bt.subtensor, subnet_uid: int, hotkey: st
         return None
     
     try:
+        # From the debug output, we can see metadata is a dictionary with nested structure
         commitment = metadata["info"]["fields"][0]
         bt.logging.debug(f"Commitment structure: {commitment}")
         
+        chain_str = None
+        
+        # Handle tuple of dictionary with various Raw types (Raw24, Raw61, Raw68, etc.)
         if isinstance(commitment, tuple) and len(commitment) > 0 and isinstance(commitment[0], dict):
-            for key in ['Raw24', 'Raw68']:
-                if key in commitment[0]:
-                    raw_key = key
-                    break
-                    
-            if raw_key:
+            # Find any key that starts with 'Raw'
+            raw_keys = [key for key in commitment[0].keys() if key.startswith('Raw')]
+            
+            if raw_keys:
+                raw_key = raw_keys[0]  # Use the first Raw key found
+                # Extract the raw data (tuple of integers)
                 raw_data = commitment[0][raw_key][0]
+                # Convert the tuple of integers to a string
                 chain_str = ''.join(chr(i) for i in raw_data)
+                bt.logging.debug(f"Parsed chain string: {chain_str}")
             else:
-                bt.logging.error(f"No Raw24 or Raw68 key found in commitment: {commitment}")
+                bt.logging.error(f"No Raw key found in commitment: {commitment}")
                 return None
         else:
             bt.logging.error(f"Unexpected commitment structure: {commitment}")
             return None
-                
+        
+        # Now we need to parse the chain_str
+        # The format should be something like: "reponame:commit_id:commit_hash"
         model_id = None
         try:
             model_id = ModelId.from_compressed_str(chain_str)
+            bt.logging.info(f"Successfully parsed model ID: {model_id}")
         except Exception as e:
-            bt.logging.error(
-                f"Failed to parse the metadata on the chain for hotkey {hotkey}: {e}"
-            )
+            # If the metadata format is not correct on the chain then we return None.
+            bt.logging.error(f"Failed to parse the metadata on the chain for hotkey {hotkey}: {e}")
             return None
         
         model_metadata = ModelMetadata(id=model_id, block=metadata["block"])
