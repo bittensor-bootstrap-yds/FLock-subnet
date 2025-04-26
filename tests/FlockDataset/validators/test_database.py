@@ -1,5 +1,4 @@
 import pytest
-import sqlite3
 from FLockDataset.validator.database import ScoreDB
 
 @pytest.fixture
@@ -11,15 +10,19 @@ def db():
 def test_init_db(db):
     """Test that the database initializes with the correct table."""
     c = db.conn.cursor()
-    c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='miner_scores'")
+    c.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='miner_scores'"
+    )
     assert c.fetchone() is not None, "The 'miner_scores' table should be created"
 
 def test_insert_or_reset_uid(db):
     """Test inserting or resetting UIDs with hotkeys."""
+    base = 1.0 / 255.0
+
     # Insert new UID
     db.insert_or_reset_uid(1, "hotkey1")
     scores = db.get_scores([1])
-    assert scores == [0.0], "New UID should have score 0.0"
+    assert scores == [pytest.approx(base)], f"New UID should have score {base}"
 
     # Update score and check no reset with same hotkey
     db.update_score(1, 5.0)
@@ -32,20 +35,20 @@ def test_insert_or_reset_uid(db):
     # Reset score with different hotkey
     db.insert_or_reset_uid(1, "hotkey2")
     scores = db.get_scores([1])
-    assert scores == [0.0], "Score should reset to 0.0 with new hotkey"
+    assert scores == [pytest.approx(base)], f"Score should reset to {base} with new hotkey"
 
 def test_update_score(db):
     """Test updating scores for UIDs."""
-    # Insert UID and update score
+    # Insert UID and overwrite score
     db.insert_or_reset_uid(1, "hotkey1")
     db.update_score(1, 3.0)
     scores = db.get_scores([1])
     assert scores == [3.0], "Score should be updated to 3.0"
 
-    # Cumulative update
+    # Overwrite with a new value
     db.update_score(1, 2.0)
     scores = db.get_scores([1])
-    assert scores == [5.0], "Score should be cumulatively updated to 5.0"
+    assert scores == [2.0], "Score should be overwritten to 2.0"
 
 def test_get_scores(db):
     """Test retrieving scores for UIDs."""
@@ -70,3 +73,4 @@ def test_get_scores(db):
     assert len(scores) == 2, "Should return two scores"
     assert scores[0] == 10.0, "Existing UID 1 should have score 10.0"
     assert scores[1] == 0.0, "Non-existing UID 3 should have score 0.0"
+

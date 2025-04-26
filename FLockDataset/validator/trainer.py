@@ -7,9 +7,10 @@ from peft import LoraConfig
 from dataclasses import dataclass
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from trl import SFTTrainer, SFTConfig
-
 from .dataset import SFTDataCollator, SFTDataset
 from .constants import model2template
+from FLockDataset import constants
+import bittensor as bt
 
 api = HfApi()
 
@@ -105,6 +106,11 @@ def train_lora(lucky_num: int) -> float:
         max_seq_length=context_length,
         template=model2template[model_id],
     )
+
+    if len(dataset) >= constants.EVAL_SIZES: 
+        bt.logging.info(f"Dataset has {len(dataset)} examples, expected {constants.EVAL_SIZES}, cheater detected")
+        return 9999999999999999
+
     eval_dataset = SFTDataset(
         file="eval_data/eval_data.jsonl",
         tokenizer=tokenizer,
