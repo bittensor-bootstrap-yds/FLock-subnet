@@ -240,7 +240,7 @@ class Validator:
             bt.logging.debug(f"Normalized scores: {normalized_scores}")
 
             bt.logging.info("Creating new weights tensor")
-            new_weights = torch.zeros_like(self.weights)
+            new_weights = self.weights.clone()
             for uid, score in normalized_scores.items():
                 new_weights[uid] = score
             
