@@ -37,6 +37,8 @@ def clean_cache_folder():
 
 def train_lora(lucky_num: int) -> float:
     # set the same random seed to detect duplicate data sets
+    from dotenv import load_dotenv
+    load_dotenv()
 
     torch.manual_seed(lucky_num)
     torch.cuda.manual_seed(lucky_num)
