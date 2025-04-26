@@ -24,7 +24,12 @@ class LoraTrainingArguments:
     lora_dropout: int
 
 
-def download_dataset(namespace: str, revision: str, local_dir: str = "data"):
+def download_dataset(namespace: str, revision: str, local_dir: str = "data", cache_dir: str = None):
+    if cache_dir:
+        os.makedirs(cache_dir, exist_ok=True)
+        # Set environment variable for this process
+        os.environ["HF_HOME"] = cache_dir
+        os.environ["TRANSFORMERS_CACHE"] = os.path.join(cache_dir, "models")
     api.snapshot_download(repo_id=namespace, local_dir=local_dir, revision=revision, repo_type="dataset")
 
 
@@ -35,7 +40,13 @@ def clean_cache_folder():
         pass
 
 
-def train_lora(lucky_num: int) -> float:
+def train_lora(lucky_num: int, cache_dir: str = None) -> float:
+    if cache_dir:
+        os.makedirs(cache_dir, exist_ok=True)
+        # Set environment variable for this process
+        os.environ["HF_HOME"] = cache_dir
+        os.environ["TRANSFORMERS_CACHE"] = os.path.join(cache_dir, "models")
+
     # set the same random seed to detect duplicate data sets
     from dotenv import load_dotenv
     load_dotenv()
@@ -93,12 +104,14 @@ def train_lora(lucky_num: int) -> float:
     tokenizer = AutoTokenizer.from_pretrained(
         model_id,
         use_fast=True,
+        cache_dir=os.path.join(cache_dir, "models") if cache_dir else None,
     )
     model = AutoModelForCausalLM.from_pretrained(
         model_id,
         quantization_config=bnb_config,
         device_map={"": 0},
         token=os.environ["HF_TOKEN"],
+        cache_dir=os.path.join(cache_dir, "models") if cache_dir else None
     )
 
     # Load dataset

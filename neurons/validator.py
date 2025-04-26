@@ -52,6 +52,14 @@ class Validator:
             help="The subnet UID."
         )
 
+        parser.add_argument(
+            "--cache_dir",
+            type=str,
+            default="~/hf_cache",
+            help="Directory to store downloaded model files.",
+        )
+
+
         bt.subtensor.add_args(parser)
         bt.logging.add_args(parser)
         bt.wallet.add_args(parser)
@@ -167,10 +175,10 @@ class Validator:
             if metadata is not None: 
                 bt.logging.info(f"Retrieved metadata: {metadata}")
                 try: 
-                    bt.logging.info(f"Downloading dataset: {metadata.id.namespace}/{metadata.id.commit}")
-                    download_dataset(metadata.id.namespace, metadata.id.commit)
+                    bt.logging.info(f"Using cache directory: {self.config.cache_dir}")
+                    download_dataset(metadata.id.namespace, metadata.id.commit, cache_dir=self.config.cache_dir)
                     bt.logging.info(f"Downloading evaluation dataset: {constants.eval_namespace}/{constants.eval_commit}")
-                    download_dataset(constants.eval_namespace, constants.eval_commit, local_dir="eval_data")
+                    download_dataset(constants.eval_namespace, constants.eval_commit, local_dir="eval_data", cache_dir=self.config.cache_dir)
 
                     bt.logging.info("Starting LoRA training")
                     eval_loss = train_lora(lucky_num)
