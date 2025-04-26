@@ -18,27 +18,21 @@ def retrieve_model_metadata(subtensor: bt.subtensor, subnet_uid: int, hotkey: st
         commitment = metadata["info"]["fields"][0]
         bt.logging.debug(f"Commitment structure: {commitment}")
         
-        if isinstance(commitment, dict):
-            hex_data = commitment[list(commitment.keys())[0]][2:]
-        elif isinstance(commitment, tuple) and hasattr(commitment, '__getitem__'):
-            if len(commitment) > 0 and isinstance(commitment[0], dict) and 'Raw24' in commitment[0]:
-                hex_data = commitment[0]['Raw24'][0][2:] if isinstance(commitment[0]['Raw24'][0], str) else ''.join([chr(c) for c in commitment[0]['Raw24'][0]])
+        if isinstance(commitment, tuple) and len(commitment) > 0 and isinstance(commitment[0], dict):
+            for key in ['Raw24', 'Raw68']:
+                if key in commitment[0]:
+                    raw_key = key
+                    break
+                    
+            if raw_key:
+                raw_data = commitment[0][raw_key][0]
+                chain_str = ''.join(chr(i) for i in raw_data)
             else:
-                bt.logging.error(f"Unexpected commitment structure: {commitment}")
+                bt.logging.error(f"No Raw24 or Raw68 key found in commitment: {commitment}")
                 return None
         else:
-            bt.logging.error(f"Unsupported commitment type: {type(commitment)}")
+            bt.logging.error(f"Unexpected commitment structure: {commitment}")
             return None
-        
-        try:
-            chain_str = bytes.fromhex(hex_data).decode() if isinstance(hex_data, str) else hex_data
-        except Exception as e:
-            bt.logging.error(f"Error decoding hex data: {e}")
-            if isinstance(hex_data, tuple) and all(isinstance(i, int) for i in hex_data):
-                chain_str = ''.join(chr(i) for i in hex_data)
-            else:
-                bt.logging.error(f"Unable to decode hex data: {hex_data}")
-                return None
                 
         model_id = None
         try:
@@ -56,7 +50,6 @@ def retrieve_model_metadata(subtensor: bt.subtensor, subnet_uid: int, hotkey: st
         bt.logging.error(f"Error processing metadata: {e}")
         bt.logging.error(f"Stack trace:", exc_info=True)
         return None
-
 
 def set_weights_with_err_msg(
         subtensor: bt.subtensor,
