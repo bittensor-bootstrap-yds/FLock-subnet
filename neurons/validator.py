@@ -230,9 +230,12 @@ class Validator:
             bt.logging.info("Normalizing scores")
             normalized_scores = {}
             for uid in uids_to_eval: 
-                if scores_per_uid[uid] != 0: 
-                    normalized_scores = compute_score(scores_per_uid[uid], competition.bench)
+                if scores_per_uid[uid] is not None and scores_per_uid[uid] != 0: 
+                    bt.logging.debug(f"Computing normalized score for UID {uid} with raw score {scores_per_uid[uid]}")
+                    normalized_score = compute_score(scores_per_uid[uid], competition.bench)
+                    normalized_scores[uid] = normalized_score
                 else: 
+                    bt.logging.debug(f"Setting zero normalized score for UID {uid}")
                     normalized_scores[uid] = 0
             bt.logging.debug(f"Normalized scores: {normalized_scores}")
 
