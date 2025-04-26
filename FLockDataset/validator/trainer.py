@@ -25,11 +25,20 @@ class LoraTrainingArguments:
 
 
 def download_dataset(namespace: str, revision: str, local_dir: str = "data", cache_dir: str = None):
+    # Create cache directory if it doesn't exist
     if cache_dir:
         os.makedirs(cache_dir, exist_ok=True)
         # Set environment variable for this process
         os.environ["HF_HOME"] = cache_dir
         os.environ["TRANSFORMERS_CACHE"] = os.path.join(cache_dir, "models")
+    
+    # Make sure local_dir is an absolute path
+    if not os.path.isabs(local_dir):
+        local_dir = os.path.abspath(local_dir)
+    
+    # Create the directory if it doesn't exist
+    os.makedirs(local_dir, exist_ok=True)
+    
     api.snapshot_download(repo_id=namespace, local_dir=local_dir, revision=revision, repo_type="dataset")
 
 

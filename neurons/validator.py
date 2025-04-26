@@ -59,6 +59,19 @@ class Validator:
             help="Directory to store downloaded model files.",
         )
 
+        parser.add_argument(
+            "--data_dir",
+            type=str,
+            default="/workspace/data",
+            help="Directory to store miner datasets.",
+        )
+
+        parser.add_argument(
+            "--eval_data_dir",
+            type=str,
+            default="/workspace/eval_data",
+            help="Directory to store evaluation datasets.",
+        )
 
         bt.subtensor.add_args(parser)
         bt.logging.add_args(parser)
@@ -175,6 +188,18 @@ class Validator:
             if metadata is not None: 
                 bt.logging.info(f"Retrieved metadata: {metadata}")
                 try: 
+                    miner_data_dir = os.path.join(self.config.data_dir, f"miner_{uid}")
+                    eval_data_dir = os.path.join(self.config.eval_data_dir)
+
+                    bt.logging.info(f"Using data directory: {miner_data_dir}")
+                    bt.logging.info(f"Using evaluation directory: {eval_data_dir}")
+
+                    os.makedirs(miner_data_dir, exist_ok=True)
+                    os.makedirs(eval_data_dir, exist_ok=True)
+
+                    download_dataset(metadata.id.namespace, metadata.id.commit, local_dir=miner_data_dir, cache_dir=self.config.cache_dir)
+                    download_dataset(constants.eval_namespace, constants.eval_commit, local_dir=eval_data_dir, cache_dir=self.config.cache_dir)
+
                     bt.logging.info(f"Using cache directory: {self.config.cache_dir}")
                     download_dataset(metadata.id.namespace, metadata.id.commit, cache_dir=self.config.cache_dir)
                     bt.logging.info(f"Downloading evaluation dataset: {constants.eval_namespace}/{constants.eval_commit}")
