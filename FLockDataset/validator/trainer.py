@@ -122,8 +122,8 @@ def train_lora(lucky_num: int, cache_dir: str = None) -> float:
         template=model2template[model_id],
     )
 
-    if len(dataset) >= constants.EVAL_SIZES: 
-        bt.logging.info(f"Dataset has {len(dataset)} examples, expected {constants.EVAL_SIZES}, cheater detected")
+    if len(dataset) >= constants.EVAL_SIZE: 
+        bt.logging.info(f"Dataset has {len(dataset)} examples, expected {constants.EVAL_SIZE}, cheater detected")
         return 9999999999999999
 
     eval_dataset = SFTDataset(
