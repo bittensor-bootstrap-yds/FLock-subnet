@@ -24,6 +24,13 @@ llama3_template = {
     "stop_word": "<|eot_id|>"
 }
 
+tinyllama_template = {
+    "system_format": "<|system|>\n{content}\n<|endoftext|>\n",
+    "user_format": "<|user|>\n{content}\n<|endoftext|>\n<|assistant|>\n",
+    "assistant_format": "{content}<|endoftext|>\n",
+    "system": "You are a helpful assistant.",  
+}
+
 model2template = {
     "Qwen/Qwen1.5-0.5B": qwen_template,
     "Qwen/Qwen1.5-1.8B": qwen_template,
@@ -31,4 +38,5 @@ model2template = {
     "google/gemma-2b": gemma_template,
     "google/gemma-7b": gemma_template,
     "meta-llama/Llama-3.2-1B": llama3_template,
+    "TinyLlama/TinyLlama-1.1B-Chat-v1.0": tinyllama_template,  
 }
