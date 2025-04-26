@@ -198,14 +198,15 @@ class Validator:
 
             bt.logging.info("Checking for duplicate scores")
             for uid_i, score_i in scores_per_uid.items():
-                if score_i == 0 or uid_i in processed_uids:
-                    bt.logging.debug(f"Skipping UID {uid_i} with score {score_i} (zero or already processed)")
+                # Skip UIDs with None or 0 scores, or already processed UIDs
+                if score_i is None or score_i == 0 or uid_i in processed_uids:
+                    bt.logging.debug(f"Skipping UID {uid_i} with score {score_i} (None, zero, or already processed)")
                     continue
                     
                 # Find all UIDs with nearly identical scores
                 similar_uids = [uid_i]
                 for uid_j, score_j in scores_per_uid.items():
-                    if uid_i != uid_j and score_j != 0 and uid_j not in processed_uids:
+                    if uid_i != uid_j and score_j is not None and score_j != 0 and uid_j not in processed_uids:
                         if math.isclose(score_i, score_j, rel_tol=1e-9):
                             bt.logging.debug(f"Found similar score: {uid_i}({score_i}) and {uid_j}({score_j})")
                             similar_uids.append(uid_j)
