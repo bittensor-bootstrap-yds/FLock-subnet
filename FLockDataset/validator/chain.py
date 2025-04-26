@@ -39,8 +39,13 @@ def retrieve_model_metadata(subtensor: bt.subtensor, subnet_uid: int, hotkey: st
             bt.logging.error(f"Unexpected commitment structure: {commitment}")
             return None
         
+        # Check if this is JSON data (special case) or a repository ID
+        if chain_str.startswith('{'):
+            bt.logging.warning(f"Found JSON data instead of repository ID: {chain_str}")
+            # This is not a valid repository ID, so we should skip it
+            return None
+        
         # Now we need to parse the chain_str
-        # The format should be something like: "reponame:commit_id:commit_hash"
         model_id = None
         try:
             model_id = ModelId.from_compressed_str(chain_str)
