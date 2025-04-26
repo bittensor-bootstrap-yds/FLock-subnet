@@ -29,5 +29,5 @@ class Competition:
             return None
 
 # eval dataset huggingface
-eval_namespace = "xiaofengzi/flcok_test"
+eval_namespace = "silassilas/base"
 eval_commit = "main"
