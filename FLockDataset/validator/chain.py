@@ -8,27 +8,54 @@ from bittensor.core.extrinsics.set_weights import set_weights_extrinsic
 
 def retrieve_model_metadata(subtensor: bt.subtensor, subnet_uid: int, hotkey: str) -> Optional[ModelMetadata]:
     """Retrieves model metadata on this subnet for specific hotkey"""
-
     metadata = bt.core.extrinsics.serving.get_metadata(subtensor, subnet_uid, hotkey)
     bt.logging.debug(f"metadata: {metadata}")
+    
     if not metadata:
         return None
-
-    commitment = metadata["info"]["fields"][0]
-    hex_data = commitment[list(commitment.keys())[0]][2:]
-
-    chain_str = bytes.fromhex(hex_data).decode()
-    model_id = None
+    
     try:
-        model_id = ModelId.from_compressed_str(chain_str)
-    except:
-        # If the metadata format is not correct on the chain then we return None.
-        bt.logging.trace(
-            f"Failed to parse the metadata on the chain for hotkey {hotkey}."
-        )
+        commitment = metadata["info"]["fields"][0]
+        bt.logging.debug(f"Commitment structure: {commitment}")
+        
+        if isinstance(commitment, dict):
+            hex_data = commitment[list(commitment.keys())[0]][2:]
+        elif isinstance(commitment, tuple) and hasattr(commitment, '__getitem__'):
+            if len(commitment) > 0 and isinstance(commitment[0], dict) and 'Raw24' in commitment[0]:
+                hex_data = commitment[0]['Raw24'][0][2:] if isinstance(commitment[0]['Raw24'][0], str) else ''.join([chr(c) for c in commitment[0]['Raw24'][0]])
+            else:
+                bt.logging.error(f"Unexpected commitment structure: {commitment}")
+                return None
+        else:
+            bt.logging.error(f"Unsupported commitment type: {type(commitment)}")
+            return None
+        
+        try:
+            chain_str = bytes.fromhex(hex_data).decode() if isinstance(hex_data, str) else hex_data
+        except Exception as e:
+            bt.logging.error(f"Error decoding hex data: {e}")
+            if isinstance(hex_data, tuple) and all(isinstance(i, int) for i in hex_data):
+                chain_str = ''.join(chr(i) for i in hex_data)
+            else:
+                bt.logging.error(f"Unable to decode hex data: {hex_data}")
+                return None
+                
+        model_id = None
+        try:
+            model_id = ModelId.from_compressed_str(chain_str)
+        except Exception as e:
+            bt.logging.error(
+                f"Failed to parse the metadata on the chain for hotkey {hotkey}: {e}"
+            )
+            return None
+        
+        model_metadata = ModelMetadata(id=model_id, block=metadata["block"])
+        return model_metadata
+        
+    except Exception as e:
+        bt.logging.error(f"Error processing metadata: {e}")
+        bt.logging.error(f"Stack trace:", exc_info=True)
         return None
-    model_metadata = ModelMetadata(id=model_id, block=metadata["block"])
-    return model_metadata
 
 
 def set_weights_with_err_msg(
