@@ -23,10 +23,10 @@ class ScoreDB:
                      (uid, hotkey, base_score))
         self.conn.commit()
 
-    def update_score(self, uid: int, delta: float):
-        """Update the score for a given UID by adding the delta."""
+    def update_score(self, uid: int, new_score: float):
+        """Update the score for a given UID"""
         c = self.conn.cursor()
-        c.execute("UPDATE miner_scores SET score = score + ? WHERE uid = ?", (delta, uid))
+        c.execute("UPDATE miner_scores SET score = ? WHERE uid = ?", (new_score, uid))
         self.conn.commit()
 
     def get_scores(self, uids: list) -> list:

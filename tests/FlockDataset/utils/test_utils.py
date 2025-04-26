@@ -1,5 +1,6 @@
 import pytest
 import bittensor as bt
+from FLockDataset.constants import SUBNET_OWNER_HOTKEY
 from FLockDataset.utils.chain import read_chain_commitment
 
 @pytest.fixture
@@ -9,16 +10,15 @@ def node():
 
 def test_read_chain_commitment(node):
     """Test reading commitment data from another neuron on the chain"""
-    target_hotkey = "5Cex1UGEN6GZBcSBkWXtrerQ6Zb7h8eD7oSe9eDyZmj4doWu"  
     subnet_uid = 257
     
-    print(f"Reading data for hotkey: {target_hotkey}")
+    print(f"Reading data for hotkey: {SUBNET_OWNER_HOTKEY}")
     
-    comp = read_chain_commitment(target_hotkey, node, subnet_uid)
+    comp = read_chain_commitment(SUBNET_OWNER_HOTKEY, node, subnet_uid)
         
     print(f"Read data type: {type(comp)}, value: {comp}")
     
     assert comp is not None, "Should return a valid commitment"
-    assert comp.id == 42, "ID should be 42"
+    assert comp.id == "42", "ID should be 42"
     assert comp.bench == 100, "Bench should be 100"
     

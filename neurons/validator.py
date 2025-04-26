@@ -128,13 +128,14 @@ class Validator:
                     download_dataset(metadata.id.namespace, metadata.id.commit)
                     download_dataset(constants.eval_namespace, constants.eval_commit, local_dir="eval_data")
                     eval_loss = train_lora(lucky_num)
-
                     metadata_per_uid[uid] = metadata
                     scores_per_uid[uid] = eval_loss
                     block_per_uid[uid] = metadata.block
+
                 except Exception as e:
                     bt.logging.error(f"train error: {e}")
                     scores_per_uid[uid] = 0
+
                 finally:
                     clean_cache_folder()
             else:
