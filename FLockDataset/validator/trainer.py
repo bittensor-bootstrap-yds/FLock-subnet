@@ -14,6 +14,7 @@ import bittensor as bt
 
 api = HfApi()
 
+
 @dataclass
 class LoraTrainingArguments:
     per_device_train_batch_size: int
@@ -24,22 +25,26 @@ class LoraTrainingArguments:
     lora_dropout: int
 
 
-def download_dataset(namespace: str, revision: str, local_dir: str = "data", cache_dir: str = None):
+def download_dataset(
+    namespace: str, revision: str, local_dir: str = "data", cache_dir: str = None
+):
     # Create cache directory if it doesn't exist
     if cache_dir:
         os.makedirs(cache_dir, exist_ok=True)
         # Set environment variable for this process
         os.environ["HF_HOME"] = cache_dir
         os.environ["TRANSFORMERS_CACHE"] = os.path.join(cache_dir, "models")
-    
+
     # Make sure local_dir is an absolute path
     if not os.path.isabs(local_dir):
         local_dir = os.path.abspath(local_dir)
-    
+
     # Create the directory if it doesn't exist
     os.makedirs(local_dir, exist_ok=True)
-    
-    api.snapshot_download(repo_id=namespace, local_dir=local_dir, revision=revision, repo_type="dataset")
+
+    api.snapshot_download(
+        repo_id=namespace, local_dir=local_dir, revision=revision, repo_type="dataset"
+    )
 
 
 def clean_cache_folder():
@@ -49,7 +54,12 @@ def clean_cache_folder():
         pass
 
 
-def train_lora(lucky_num: int, cache_dir: str = None, data_dir: str = "data", eval_data_dir: str = "eval_data") -> float:
+def train_lora(
+    lucky_num: int,
+    cache_dir: str = None,
+    data_dir: str = "data",
+    eval_data_dir: str = "eval_data",
+) -> float:
     if cache_dir:
         os.makedirs(cache_dir, exist_ok=True)
         # Set environment variable for this process
@@ -58,6 +68,7 @@ def train_lora(lucky_num: int, cache_dir: str = None, data_dir: str = "data", ev
 
     # set the same random seed to detect duplicate data sets
     from dotenv import load_dotenv
+
     load_dotenv()
 
     torch.manual_seed(lucky_num)
@@ -69,8 +80,8 @@ def train_lora(lucky_num: int, cache_dir: str = None, data_dir: str = "data", ev
     g.manual_seed(lucky_num)
     torch.backends.cudnn.enabled = False
     torch.use_deterministic_algorithms(True)
-    os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':16:8'
-    os.environ['PYTHONHASHSEED'] = str(lucky_num)
+    os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":16:8"
+    os.environ["PYTHONHASHSEED"] = str(lucky_num)
 
     context_length = 512
     with open(f"FLockDataset/validator/training_args.yaml", "r") as f:
@@ -120,20 +131,21 @@ def train_lora(lucky_num: int, cache_dir: str = None, data_dir: str = "data", ev
         quantization_config=bnb_config,
         device_map={"": 0},
         token=os.environ["HF_TOKEN"],
-        cache_dir=os.path.join(cache_dir, "models") if cache_dir else None
+        cache_dir=os.path.join(cache_dir, "models") if cache_dir else None,
     )
 
     # Load dataset
     dataset = SFTDataset(
         file=os.path.join(data_dir, "data.jsonl"),
-
         tokenizer=tokenizer,
         max_seq_length=context_length,
         template=model2template[model_id],
     )
 
-    if len(dataset) > constants.EVAL_SIZE: 
-        bt.logging.info(f"Dataset has {len(dataset)} examples, expected {constants.EVAL_SIZE}, cheater detected")
+    if len(dataset) > constants.EVAL_SIZE:
+        bt.logging.info(
+            f"Dataset has {len(dataset)} examples, expected {constants.EVAL_SIZE}, cheater detected"
+        )
         return 9999999999999999
 
     eval_file_path = os.path.join(eval_data_dir, "eval_data.jsonl")
@@ -144,7 +156,7 @@ def train_lora(lucky_num: int, cache_dir: str = None, data_dir: str = "data", ev
             for file in files:
                 if file.endswith(".jsonl"):
                     jsonl_files.append(os.path.join(root, file))
-        
+
         if jsonl_files:
             # Use the first jsonl file found
             eval_file_path = jsonl_files[0]

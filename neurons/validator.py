@@ -24,10 +24,18 @@ import math
 import numpy as np
 from FLockDataset import constants
 from FLockDataset.utils.chain import assert_registered, read_chain_commitment
-from FLockDataset.validator.chain import retrieve_model_metadata, set_weights_with_err_msg
+from FLockDataset.validator.chain import (
+    retrieve_model_metadata,
+    set_weights_with_err_msg,
+)
 from FLockDataset.validator.validator_utils import compute_score
-from FLockDataset.validator.trainer import train_lora, download_dataset, clean_cache_folder
-from FLockDataset.validator.database import ScoreDB  
+from FLockDataset.validator.trainer import (
+    train_lora,
+    download_dataset,
+    clean_cache_folder,
+)
+from FLockDataset.validator.database import ScoreDB
+
 
 class Validator:
     @staticmethod
@@ -43,14 +51,10 @@ class Validator:
         parser.add_argument(
             "--miner_sample_size",
             type=int,
-            default=3, 
+            default=3,
             help="Number of miners to sample for each block.",
         )
-        parser.add_argument(
-            "--netuid", 
-            type=int, 
-            help="The subnet UID."
-        )
+        parser.add_argument("--netuid", type=int, help="The subnet UID.")
 
         parser.add_argument(
             "--cache_dir",
@@ -115,13 +119,12 @@ class Validator:
         self.weights = torch.zeros_like(torch.tensor(self.metagraph.S))
         bt.logging.info(f"Weights initialized with shape: {self.weights.shape}")
 
-        self.uids_to_eval: typing.Dict[str, typing.List] = {} 
+        self.uids_to_eval: typing.Dict[str, typing.List] = {}
         bt.logging.info("Initializing score database")
         self.score_db = ScoreDB("scores.db")
         bt.logging.info("Score database initialized")
-        self.rng = np.random.default_rng()    
+        self.rng = np.random.default_rng()
         bt.logging.info("Validator initialization complete")
-
 
     async def try_sync_metagraph(self) -> bool:
         bt.logging.trace("Syncing metagraph")
@@ -148,7 +151,7 @@ class Validator:
         hotkeys = self.metagraph.hotkeys
         bt.logging.info(f"Current UIDs: {current_uids}")
 
-        base_score = 1.0/255.0  # Default initial weight
+        base_score = 1.0 / 255.0  # Default initial weight
         for uid in current_uids:
             self.score_db.insert_or_reset_uid(uid, hotkeys[uid], base_score)
 
@@ -163,7 +166,9 @@ class Validator:
         bt.logging.debug(f"Consensus: {self.consensus}")
 
         bt.logging.info("Reading chain commitment")
-        competition = read_chain_commitment(constants.SUBNET_OWNER_HOTKEY, self.subtensor, self.config.netuid)
+        competition = read_chain_commitment(
+            constants.SUBNET_OWNER_HOTKEY, self.subtensor, self.config.netuid
+        )
         if competition is None:
             bt.logging.error("Failed to read competition commitment")
             return
@@ -179,17 +184,21 @@ class Validator:
         scores_per_uid = {uid: None for uid in uids_to_eval}
         metadata_per_uid = {uid: None for uid in uids_to_eval}
         block_per_uid = {uid: None for uid in uids_to_eval}
-        lucky_num = int.from_bytes(os.urandom(4), 'little')
+        lucky_num = int.from_bytes(os.urandom(4), "little")
 
-        for uid in uids_to_eval: 
+        for uid in uids_to_eval:
             bt.logging.info(f"Evaluating UID: {uid}")
-            bt.logging.info(f"Retrieving model metadata for hotkey: {self.metagraph.hotkeys[uid]}")
-            metadata = retrieve_model_metadata(self.subtensor, self.config.netuid, self.metagraph.hotkeys[uid])
-            if metadata is not None: 
+            bt.logging.info(
+                f"Retrieving model metadata for hotkey: {self.metagraph.hotkeys[uid]}"
+            )
+            metadata = retrieve_model_metadata(
+                self.subtensor, self.config.netuid, self.metagraph.hotkeys[uid]
+            )
+            if metadata is not None:
                 bt.logging.info(f"Retrieved metadata: {metadata}")
-                try: 
+                try:
                     miner_data_dir = os.path.join(self.config.data_dir, f"miner_{uid}")
-                    eval_data_dir = os.path.join(self.config.eval_data_dir)
+                    eval_data_dir = self.config.eval_data_dir
 
                     bt.logging.info(f"Using data directory: {miner_data_dir}")
                     bt.logging.info(f"Using evaluation directory: {eval_data_dir}")
@@ -197,16 +206,45 @@ class Validator:
                     os.makedirs(miner_data_dir, exist_ok=True)
                     os.makedirs(eval_data_dir, exist_ok=True)
 
-                    download_dataset(metadata.id.namespace, metadata.id.commit, local_dir=miner_data_dir, cache_dir=self.config.cache_dir)
-                    download_dataset(constants.eval_namespace, constants.eval_commit, local_dir=eval_data_dir, cache_dir=self.config.cache_dir)
+                    download_dataset(
+                        metadata.id.namespace,
+                        metadata.id.commit,
+                        local_dir=miner_data_dir,
+                        cache_dir=self.config.cache_dir,
+                    )
 
+                    download_dataset(
+                        constants.eval_namespace,
+                        constants.eval_commit,
+                        local_dir=eval_data_dir,
+                        cache_dir=self.config.cache_dir,
+                    )
                     bt.logging.info(f"Using cache directory: {self.config.cache_dir}")
-                    download_dataset(metadata.id.namespace, metadata.id.commit, cache_dir=self.config.cache_dir)
-                    bt.logging.info(f"Downloading evaluation dataset: {constants.eval_namespace}/{constants.eval_commit}")
-                    download_dataset(constants.eval_namespace, constants.eval_commit, local_dir="eval_data", cache_dir=self.config.cache_dir)
+
+                    download_dataset(
+                        metadata.id.namespace,
+                        metadata.id.commit,
+                        local_dir=miner_data_dir,
+                        cache_dir=self.config.cache_dir,
+                    )
+                    bt.logging.info(
+                        f"Downloading evaluation dataset: {constants.eval_namespace}/{constants.eval_commit}"
+                    )
+
+                    download_dataset(
+                        constants.eval_namespace,
+                        constants.eval_commit,
+                        local_dir=eval_data_dir,
+                        cache_dir=self.config.cache_dir,
+                    )
 
                     bt.logging.info("Starting LoRA training")
-                    eval_loss = train_lora(lucky_num, self.config.cach_dir, self.config.data_dir, self.config.eval_data_dir)
+                    eval_loss = train_lora(
+                        lucky_num,
+                        cache_dir=self.config.cache_dir,
+                        data_dir=miner_data_dir,
+                        eval_data_dir=eval_data_dir,
+                    )
                     bt.logging.info(f"Training complete with eval loss: {eval_loss}")
 
                     metadata_per_uid[uid] = metadata
@@ -225,7 +263,6 @@ class Validator:
                 bt.logging.warning(f"No metadata found for UID {uid}")
                 scores_per_uid[uid] = 0
 
-
             duplicate_groups = []
             processed_uids = set()
 
@@ -233,17 +270,26 @@ class Validator:
             for uid_i, score_i in scores_per_uid.items():
                 # Skip UIDs with None or 0 scores, or already processed UIDs
                 if score_i is None or score_i == 0 or uid_i in processed_uids:
-                    bt.logging.debug(f"Skipping UID {uid_i} with score {score_i} (None, zero, or already processed)")
+                    bt.logging.debug(
+                        f"Skipping UID {uid_i} with score {score_i} (None, zero, or already processed)"
+                    )
                     continue
-                    
+
                 # Find all UIDs with nearly identical scores
                 similar_uids = [uid_i]
                 for uid_j, score_j in scores_per_uid.items():
-                    if uid_i != uid_j and score_j is not None and score_j != 0 and uid_j not in processed_uids:
+                    if (
+                        uid_i != uid_j
+                        and score_j is not None
+                        and score_j != 0
+                        and uid_j not in processed_uids
+                    ):
                         if math.isclose(score_i, score_j, rel_tol=1e-9):
-                            bt.logging.debug(f"Found similar score: {uid_i}({score_i}) and {uid_j}({score_j})")
+                            bt.logging.debug(
+                                f"Found similar score: {uid_i}({score_i}) and {uid_j}({score_j})"
+                            )
                             similar_uids.append(uid_j)
-                
+
                 # If we found duplicates, add them to a group
                 if len(similar_uids) > 1:
                     bt.logging.info(f"Found duplicate group: {similar_uids}")
@@ -255,19 +301,23 @@ class Validator:
                 bt.logging.info(f"Processing duplicate group: {group}")
                 group.sort(key=lambda uid: block_per_uid[uid])
                 bt.logging.info(f"Sorted by block: {group}")
-                
+
                 for uid in group[1:]:
                     duplicates.add(uid)
-                    scores_per_uid[uid] = 0  
+                    scores_per_uid[uid] = 0
 
             bt.logging.info("Normalizing scores")
             normalized_scores = {}
-            for uid in uids_to_eval: 
-                if scores_per_uid[uid] is not None and scores_per_uid[uid] != 0: 
-                    bt.logging.debug(f"Computing normalized score for UID {uid} with raw score {scores_per_uid[uid]}")
-                    normalized_score = compute_score(scores_per_uid[uid], competition.bench)
+            for uid in uids_to_eval:
+                if scores_per_uid[uid] is not None and scores_per_uid[uid] != 0:
+                    bt.logging.debug(
+                        f"Computing normalized score for UID {uid} with raw score {scores_per_uid[uid]}"
+                    )
+                    normalized_score = compute_score(
+                        scores_per_uid[uid], competition.bench
+                    )
                     normalized_scores[uid] = normalized_score
-                else: 
+                else:
                     bt.logging.debug(f"Setting zero normalized score for UID {uid}")
                     normalized_scores[uid] = 0
             bt.logging.debug(f"Normalized scores: {normalized_scores}")
@@ -276,17 +326,16 @@ class Validator:
             new_weights = self.weights.clone()
             for uid, score in normalized_scores.items():
                 new_weights[uid] = score
-            
 
             bt.logging.info("Updating database with score deltas")
             for uid in uids_to_eval:
-                if uid < len(new_weights):  
+                if uid < len(new_weights):
                     final_weight = new_weights[uid].item()
                     self.score_db.update_score(uid, final_weight)
 
             self.weights = new_weights
-            bt.logging.debug(f'New weights: {new_weights}')
-            bt.logging.debug(f'Consensus: {self.consensus}')
+            bt.logging.debug(f"New weights: {new_weights}")
+            bt.logging.debug(f"Consensus: {self.consensus}")
 
             bt.logging.info("Setting weights on chain")
             set_weights_with_err_msg(
@@ -301,5 +350,6 @@ class Validator:
         while True:
             await self.run_step()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     asyncio.run(Validator().run())

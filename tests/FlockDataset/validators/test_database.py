@@ -1,11 +1,13 @@
 import pytest
 from FLockDataset.validator.database import ScoreDB
 
+
 @pytest.fixture
 def db():
     """Fixture to create an in-memory database for each test."""
     db_instance = ScoreDB(":memory:")
     yield db_instance
+
 
 def test_init_db(db):
     """Test that the database initializes with the correct table."""
@@ -14,6 +16,7 @@ def test_init_db(db):
         "SELECT name FROM sqlite_master WHERE type='table' AND name='miner_scores'"
     )
     assert c.fetchone() is not None, "The 'miner_scores' table should be created"
+
 
 def test_insert_or_reset_uid(db):
     """Test inserting or resetting UIDs with hotkeys."""
@@ -35,7 +38,10 @@ def test_insert_or_reset_uid(db):
     # Reset score with different hotkey
     db.insert_or_reset_uid(1, "hotkey2")
     scores = db.get_scores([1])
-    assert scores == [pytest.approx(base)], f"Score should reset to {base} with new hotkey"
+    assert scores == [
+        pytest.approx(base)
+    ], f"Score should reset to {base} with new hotkey"
+
 
 def test_update_score(db):
     """Test updating scores for UIDs."""
@@ -49,6 +55,7 @@ def test_update_score(db):
     db.update_score(1, 2.0)
     scores = db.get_scores([1])
     assert scores == [2.0], "Score should be overwritten to 2.0"
+
 
 def test_get_scores(db):
     """Test retrieving scores for UIDs."""
@@ -73,4 +80,3 @@ def test_get_scores(db):
     assert len(scores) == 2, "Should return two scores"
     assert scores[0] == 10.0, "Existing UID 1 should have score 10.0"
     assert scores[1] == 0.0, "Non-existing UID 3 should have score 0.0"
-
