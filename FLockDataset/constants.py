@@ -15,6 +15,7 @@ class Competition:
     """Class defining model parameters"""
 
     id: str
+    repo: str
     bench: float
 
     @classmethod
@@ -24,11 +25,10 @@ class Competition:
             return None
 
         try:
-            return cls(id=str(data.get("id", 0)), bench=data.get("bench", 0))
+            return cls(id=str(data.get("id", 0)), repo=data.get("repo", 0), bench=data.get("bench", 0))
         except Exception:
             return None
 
 
 # eval dataset huggingface
-eval_namespace = "silassilas/base"
 eval_commit = "main"

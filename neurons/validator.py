@@ -173,6 +173,8 @@ class Validator:
             bt.logging.error("Failed to read competition commitment")
             return
 
+        eval_namespace = competition.repo
+
         bt.logging.info(f"Competition commitment: {competition}")
 
         bt.logging.info("Sampling competitors for evaluation")
@@ -212,7 +214,7 @@ class Validator:
                     )
 
                     download_dataset(
-                        constants.eval_namespace,
+                        eval_namespace,
                         constants.eval_commit,
                         local_dir=eval_data_dir,
                         cache_dir=self.config.cache_dir,
@@ -226,11 +228,11 @@ class Validator:
                         cache_dir=self.config.cache_dir,
                     )
                     bt.logging.info(
-                        f"Downloading evaluation dataset: {constants.eval_namespace}/{constants.eval_commit}"
+                        f"Downloading evaluation dataset: {eval_namespace}/{constants.eval_commit}"
                     )
 
                     download_dataset(
-                        constants.eval_namespace,
+                        eval_namespace,
                         constants.eval_commit,
                         local_dir=eval_data_dir,
                         cache_dir=self.config.cache_dir,
