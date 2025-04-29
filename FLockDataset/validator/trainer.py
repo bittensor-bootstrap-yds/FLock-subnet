@@ -142,7 +142,7 @@ def train_lora(
         )
         return 9999999999999999
 
-    eval_path = os.path.join(eval_data_dir, "eval_data.jsonl")
+    eval_path = os.path.join(eval_data_dir, "data.jsonl")
     if not os.path.exists(eval_path):
         # Look for any jsonl file in the eval directory
         jsonl_files = []
