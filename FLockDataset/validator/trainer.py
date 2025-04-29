@@ -152,14 +152,14 @@ def train_lora(
                     jsonl_files.append(os.path.join(root, file))
 
         if jsonl_files:
-            eval_file_path = jsonl_files[0]
+            eval_path = jsonl_files[0]
             bt.logging.info(f"Using evaluation file: {eval_path}")
         else:
             bt.logging.error(f"No evaluation file found in {eval_path}")
             return benchmark_loss
 
     eval_ds = SFTDataset(
-        file=eval_file_path,
+        file=eval_path,
         tokenizer=tokenizer,
         max_seq_length=context_length,
         template=model2template[model_key],
