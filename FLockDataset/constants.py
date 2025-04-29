@@ -1,4 +1,5 @@
 from pathlib import Path
+import bittensor as bt
 from dataclasses import dataclass
 from typing import Optional
 
@@ -25,10 +26,13 @@ class Competition:
             return None
 
         try:
-            return cls(id=str(data.get("id", 0)), repo=data.get("repo", 0), bench=data.get("bench", 0))
-        except Exception:
+            id_val = str(data.get("id", ""))
+            repo_val = str(data.get("repo", ""))
+            bench_val = float(data.get("bench", 0.0))
+            return cls(id=id_val, repo=repo_val, bench=bench_val)
+        except (TypeError, ValueError) as e:
+            bt.logging.warning(f"Failed to parse Competition from dict: {e}")
             return None
-
 
 # eval dataset huggingface
 eval_commit = "main"

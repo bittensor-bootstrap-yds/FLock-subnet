@@ -81,12 +81,11 @@ class SFTDataset(TorchDataset):
         Returns a HF `Dataset` (so Trainer can call shuffle()/map()/etc).
         """
         # 1) build a list of dicts by iterating __getitem__
-        raw = [ self[i] for i in range(len(self)) ]
+        raw = [self[i] for i in range(len(self))]
         # 2) wrap as HF Dataset
         hf_ds = HFDataset.from_list(raw)
         # 3) apply the user-provided function
         return hf_ds.map(fn, batched=batched, **kwargs)
-
 
 
 class SFTDataCollator(object):

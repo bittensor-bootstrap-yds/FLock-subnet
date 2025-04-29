@@ -82,12 +82,21 @@ class Validator:
         bt.wallet.add_args(parser)
         bt.axon.add_args(parser)
         config = bt.config(parser)
-        bt.logging.info(f"Parsed config: {config}")
+        bt.logging.debug(f"Parsed config: {config}")
         return config
 
     def __init__(self):
         bt.logging.info("Initializing validator")
         self.config = Validator.config()
+
+        if self.config.cache_dir and self.config.cache_dir.startswith('~'):
+            self.config.cache_dir = os.path.expanduser(self.config.cache_dir)
+        
+        if self.config.data_dir and self.config.data_dir.startswith('~'):
+            self.config.data_dir = os.path.expanduser(self.config.data_dir)
+        
+        if self.config.eval_data_dir and self.config.eval_data_dir.startswith('~'):
+            self.config.eval_data_dir = os.path.expanduser(self.config.eval_data_dir)
 
         bt.logging(config=self.config)
         bt.logging.info(f"Starting validator with config: {self.config}")
@@ -151,7 +160,7 @@ class Validator:
         hotkeys = self.metagraph.hotkeys
         bt.logging.info(f"Current UIDs: {current_uids}")
 
-        base_score = 1.0 / 255.0  # Default initial weight
+        base_score = 1.0 / constants.NUM_UIDS
         for uid in current_uids:
             self.score_db.insert_or_reset_uid(uid, hotkeys[uid], base_score)
 
@@ -206,30 +215,20 @@ class Validator:
                     os.makedirs(miner_data_dir, exist_ok=True)
                     os.makedirs(eval_data_dir, exist_ok=True)
 
-                    download_dataset(
-                        metadata.id.namespace,
-                        metadata.id.commit,
-                        local_dir=miner_data_dir,
-                        cache_dir=self.config.cache_dir,
-                    )
-
-                    download_dataset(
-                        eval_namespace,
-                        constants.eval_commit,
-                        local_dir=eval_data_dir,
-                        cache_dir=self.config.cache_dir,
-                    )
-                    bt.logging.info(f"Using cache directory: {self.config.cache_dir}")
-
-                    download_dataset(
-                        metadata.id.namespace,
-                        metadata.id.commit,
-                        local_dir=miner_data_dir,
-                        cache_dir=self.config.cache_dir,
-                    )
                     bt.logging.info(
-                        f"Downloading evaluation dataset: {eval_namespace}/{constants.eval_commit}"
+                        f"Downloading training dataset: {metadata.id.namespace}/{metadata.id.commit}"
                     )
+
+                    download_dataset(
+                        metadata.id.namespace,
+                        metadata.id.commit,
+                        local_dir=miner_data_dir,
+                        cache_dir=self.config.cache_dir,
+                    )
+
+                    bt.logging.info(
+                        f"Downloading eval dataset: {eval_namespace}/{constants.eval_commit}"
+                    )                   
 
                     download_dataset(
                         eval_namespace,
@@ -313,9 +312,13 @@ class Validator:
                 bt.logging.debug(
                     f"Computing normalized score for UID {uid} with raw score {scores_per_uid[uid]}"
                 )
-                normalized_score = compute_score(
-                    scores_per_uid[uid], competition.bench
-                )
+                if competition.bench is None or competition.bench <= 0:
+                    bt.logging.warning(f"Invalid benchmark ({competition.bench}) for UID {uid}; defaulting score to 0")
+                    normalized_score = 1.0 / constants.NUM_UIDS
+                else:
+                    normalized_score = compute_score(
+                        scores_per_uid[uid], competition.bench
+                    )
                 normalized_scores[uid] = normalized_score
             else:
                 bt.logging.debug(f"Setting zero normalized score for UID {uid}")
