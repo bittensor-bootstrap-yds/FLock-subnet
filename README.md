@@ -190,7 +190,7 @@ Replace placeholders:
 - For each miner:
   - Retrieves metadata (e.g., ModelId) from the chain
   - Downloads the dataset from Hugging Face (e.g., yourusername/my-dataset:abc123...)
-  - Downloads a fixed evaluation dataset (eval_data/eval_data.jsonl)
+  - Downloads a fixed evaluation dataset (eval_data/data.jsonl)
   - Trains a LoRA model on the miner's dataset using meta-llama/Llama-3.2-1B
   - Evaluates loss on eval_data
   - Computes win rates, adjusts weights, and submits them to the chain
