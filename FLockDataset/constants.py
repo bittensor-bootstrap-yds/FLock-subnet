@@ -3,8 +3,8 @@ from dataclasses import dataclass
 from typing import Optional
 
 ROOT_DIR = Path(__file__).parent.parent
-SUBNET_OWNER_HOTKEY = "5Cex1UGEN6GZBcSBkWXtrerQ6Zb7h8eD7oSe9eDyZmj4doWu" # EXAMPLE
-SUBNET_UID = 257 # Testnet
+SUBNET_OWNER_HOTKEY = "5Cex1UGEN6GZBcSBkWXtrerQ6Zb7h8eD7oSe9eDyZmj4doWu" 
+SUBNET_UID = 257 
 NUM_UIDS = 2 ** 8 - 1
 EVAL_SIZE = 50
 
