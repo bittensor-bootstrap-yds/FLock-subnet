@@ -56,30 +56,29 @@ def read_chain_commitment(ss58: str, node: bt.subtensor, subnet_uid: int) -> Opt
     try:
         metadata = bt.core.extrinsics.serving.get_metadata(node, subnet_uid, ss58)
         if not metadata:
-            print(f"No metadata found for hotkey {ss58} on subnet {subnet_uid}")
+            bt.logging.warning(f"No metadata found for hotkey {ss58} on subnet {subnet_uid}")
             return None
 
         fields = metadata.get("info", {}).get("fields", ())
         if not fields:
-            print("No fields found in metadata")
+            bt.logging.warning("No fields found in metadata")
             return None
 
         # look only at the first field‐tuple
         field = fields[0]
         if not (isinstance(field, tuple) and field and isinstance(field[0], dict)):
-            print("Unrecognized field structure:", field)
+            bt.logging.warning(f"Unrecognized field structure: {field}")
             return None
 
         raw_dict = field[0]
         # find the RawN key
         raw_key = next((k for k in raw_dict if k.startswith("Raw")), None)
         if raw_key is None:
-            print("No RawN entry in first field:", raw_dict.keys())
+            bt.logging.warning(f"No RawN entry in first field: {raw_dict.keys()}")
             return None
 
         raw_segments = raw_dict[raw_key]  # e.g. ((byte1,byte2…), (byte25,byte26…), …)
-        print(f"🔍 Found {raw_key} with {len(raw_segments)} segment(s)")
-
+        bt.logging.debug(f"Found {raw_key} with {len(raw_segments)} segment(s)")
         # flatten all segments into one bytes object
         parts: list[bytes] = []
         for idx, seg in enumerate(raw_segments):
