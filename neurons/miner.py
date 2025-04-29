@@ -54,6 +54,9 @@ async def main(config: bt.config):
     subtensor = bt.subtensor(config=config)
     metagraph: bt.metagraph = subtensor.metagraph(int(config.netuid))
 
+    bt.logging.info(f"Starting miner with config: {config}")
+
+
     # Make sure we're registered and have a HuggingFace token.
     assert_registered(wallet, metagraph)
 
