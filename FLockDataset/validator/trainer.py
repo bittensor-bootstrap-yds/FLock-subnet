@@ -79,7 +79,7 @@ def train_lora(
         with open(f"FLockDataset/validator/training_args.yaml", "r") as f:
             all_training_args = yaml.safe_load(f)
         model_key = next(iter(all_training_args))
-        args = LoraTrainingArguments(**all_training_args[model_id])
+        args = LoraTrainingArguments(**all_training_args[model_key])
 
         lora_config = LoraConfig(
             r=args.lora_rank,
