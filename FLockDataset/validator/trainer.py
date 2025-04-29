@@ -47,11 +47,20 @@ def download_dataset(
     )
 
 
-def clean_cache_folder():
-    try:
-        shutil.rmtree("data")
-    except:
-        pass
+def clean_cache_folder(
+    data_dir: str = None, 
+    eval_data_dir: str = None,
+    cache_dir: str = None,
+):
+    """
+    Remove any leftover data / eval_data / cache data
+    """
+    for d in (data_dir, eval_data_dir, cache_dir):                # ← changed
+        if d and os.path.exists(d):
+            try:
+                shutil.rmtree(d)
+            except Exception as e:
+                bt.logging.warning(f"Could not clean {d}: {e}")
 
 
 def train_lora(

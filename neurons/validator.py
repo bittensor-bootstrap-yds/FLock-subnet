@@ -59,21 +59,21 @@ class Validator:
         parser.add_argument(
             "--cache_dir",
             type=str,
-            default="~/hf_cache",
+            default="~/data/hf_cache",
             help="Directory to store downloaded model files.",
         )
 
         parser.add_argument(
             "--data_dir",
             type=str,
-            default="~/data",
+            default="~/data/training_data",
             help="Directory to store miner datasets.",
         )
 
         parser.add_argument(
             "--eval_data_dir",
             type=str,
-            default="~/eval_data",
+            default="~/data/eval_data",
             help="Directory to store evaluation datasets.",
         )
 
@@ -256,7 +256,7 @@ class Validator:
 
                 finally:
                     bt.logging.info("Cleaning cache folder")
-                    clean_cache_folder()
+                    clean_cache_folder(miner_data_dir, eval_data_dir)
             else:
                 bt.logging.warning(f"No metadata found for UID {uid}")
                 scores_per_uid[uid] = 0
