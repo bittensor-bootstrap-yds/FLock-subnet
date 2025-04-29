@@ -147,9 +147,9 @@ def train_lora(
 
     if len(train_ds) > constants.EVAL_SIZE:
         bt.logging.info(
-            f"Dataset has {len(train_ds)} examples, expected {constants.EVAL_SIZE}, cheater detected"
+            f"Dataset has {len(train_ds)} examples, expected {constants.EVAL_SIZE}, pruning..."
         )
-        return 9999999999999999
+        train_ds.data_list = train_ds.data_list[:constants.EVAL_SIZE]
 
     eval_path = os.path.join(eval_data_dir, "data.jsonl")
     if not os.path.exists(eval_path):
