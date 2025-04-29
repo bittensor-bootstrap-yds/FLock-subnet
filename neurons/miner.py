@@ -63,7 +63,7 @@ async def main(config: bt.config):
     commit_id = model.upload_data(config.hf_repo_id, config.dataset_path)
 
     competition: Optional[Competition] = read_chain_commitment(
-        constants.SUBNET_OWNER_HOTKEY, subtensor, config.netuid
+        constants.SUBNET_OWNER, subtensor, config.netuid
     )
     if competition is None:
         bt.logging.error("Failed to read competition commitment")

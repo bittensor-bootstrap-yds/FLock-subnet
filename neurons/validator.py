@@ -167,7 +167,7 @@ class Validator:
 
         bt.logging.info("Reading chain commitment")
         competition = read_chain_commitment(
-            constants.SUBNET_OWNER_HOTKEY, self.subtensor, self.config.netuid
+            constants.SUBNET_OWNER, self.subtensor, self.config.netuid
         )
         if competition is None:
             bt.logging.error("Failed to read competition commitment")
