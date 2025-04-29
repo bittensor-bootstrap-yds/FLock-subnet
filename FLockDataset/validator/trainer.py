@@ -154,7 +154,7 @@ def train_lora(lucky_num: int, cache_dir: str = None, data_dir: str = "data", ev
             return constants.BASELINE_LOSS
 
     eval_dataset = SFTDataset(
-        file="eval_data/eval_data.jsonl",
+        file=eval_file_path,
         tokenizer=tokenizer,
         max_seq_length=context_length,
         template=model2template[model_id],
