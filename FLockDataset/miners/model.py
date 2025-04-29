@@ -2,6 +2,7 @@ import os
 from huggingface_hub import HfApi
 import bittensor as bt
 
+
 def upload_data(repo_name: str, local_file_path: str) -> str:
     api = HfApi(token=os.environ["HF_TOKEN"])
     try:

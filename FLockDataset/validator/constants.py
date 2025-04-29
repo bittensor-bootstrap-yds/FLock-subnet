@@ -1,6 +1,6 @@
-BASELINE_LOSS = 1.0 
+BASELINE_LOSS = 1.0
 MINER_SAMPLE_SIZE = 3
-TEMPERATURE = 1.0      
+TEMPERATURE = 1.0
 
 qwen_template = {
     "system_format": "<|im_start|>system\n{content}<|im_end|>\n",
@@ -21,22 +21,22 @@ llama3_template = {
     "user_format": "<|start_header_id|>user<|end_header_id|>\n\n{content}<|eot_id|><|start_header_id|>assistant<|end_header_id|>\n\n",
     "assistant_format": "{content}<|eot_id|>",
     "system": None,
-    "stop_word": "<|eot_id|>"
+    "stop_word": "<|eot_id|>",
 }
 
 tinyllama_template = {
     "system_format": "<|system|>\n{content}\n<|endoftext|>\n",
     "user_format": "<|user|>\n{content}\n<|endoftext|>\n<|assistant|>\n",
     "assistant_format": "{content}<|endoftext|>\n",
-    "system": "You are a helpful assistant.",  
+    "system": "You are a helpful assistant.",
 }
 
 model2template = {
     "Qwen/Qwen1.5-0.5B": qwen_template,
-    "Qwen/Qwen1.5-1.8B": qwen_template, # TODO: use this one 
+    "Qwen/Qwen1.5-1.8B": qwen_template,  # TODO: use this one
     "Qwen/Qwen1.5-7B": qwen_template,
     "google/gemma-2b": gemma_template,
     "google/gemma-7b": gemma_template,
     "meta-llama/Llama-3.2-1B": llama3_template,
-    "TinyLlama/TinyLlama-1.1B-Chat-v1.0": tinyllama_template,  
+    "TinyLlama/TinyLlama-1.1B-Chat-v1.0": tinyllama_template,
 }
