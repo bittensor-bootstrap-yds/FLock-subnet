@@ -2,9 +2,9 @@ import os
 import shutil
 import torch
 
-os.environ['CUBLAS_WORKSPACE_CONFIG'] = ':16:8'  
-torch.backends.cudnn.benchmark = False           
-torch.backends.cudnn.deterministic = True        
+os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":16:8"
+torch.backends.cudnn.benchmark = False
+torch.backends.cudnn.deterministic = True
 torch.use_deterministic_algorithms(True)
 
 import yaml
@@ -20,6 +20,7 @@ import bittensor as bt
 
 api = HfApi()
 
+
 @dataclass
 class LoraTrainingArguments:
     per_device_train_batch_size: int
@@ -28,6 +29,7 @@ class LoraTrainingArguments:
     lora_rank: int
     lora_alpha: int
     lora_dropout: int
+
 
 def download_dataset(
     namespace: str, revision: str, local_dir: str = "data", cache_dir: str = None
@@ -48,14 +50,14 @@ def download_dataset(
 
 
 def clean_cache_folder(
-    data_dir: str = None, 
+    data_dir: str = None,
     eval_data_dir: str = None,
     cache_dir: str = None,
 ):
     """
     Remove any leftover data / eval_data / cache data
     """
-    for d in (data_dir, eval_data_dir, cache_dir):                # ← changed
+    for d in (data_dir, eval_data_dir, cache_dir):  # ← changed
         if d and os.path.exists(d):
             try:
                 shutil.rmtree(d)
@@ -77,6 +79,7 @@ def train_lora(
 
     # set the same random seed to detect duplicate data sets
     from dotenv import load_dotenv
+
     load_dotenv()
     os.environ["PYTHONHASHSEED"] = str(lucky_num)
 
@@ -149,7 +152,7 @@ def train_lora(
         bt.logging.info(
             f"Dataset has {len(train_ds)} examples, expected {constants.EVAL_SIZE}, pruning..."
         )
-        train_ds.data_list = train_ds.data_list[:constants.EVAL_SIZE]
+        train_ds.data_list = train_ds.data_list[: constants.EVAL_SIZE]
 
     eval_path = os.path.join(eval_data_dir, "data.jsonl")
     if not os.path.exists(eval_path):

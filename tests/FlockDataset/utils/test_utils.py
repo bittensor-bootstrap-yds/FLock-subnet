@@ -1,27 +1,30 @@
 import pytest
 import bittensor as bt
+from FLockDataset.constants import SUBNET_OWNER
 from FLockDataset.utils.chain import read_chain_commitment
 
+SUBNET_OWNER_KEY = "5FZGwrY9Ycz8m6fq5rpZCgoSrQWddb7SnZCr3rFU61auctG2"
 
 @pytest.fixture
 def node():
-    """Create a mock subtensor with local node connection"""
+    """Create a subtensor with test network connection"""
     return bt.subtensor("test")
-
 
 def test_read_chain_commitment(node):
     """Test reading commitment data from another neuron on the chain"""
     subnet_uid = 257
-
-    key = "5FZGwrY9Ycz8m6fq5rpZCgoSrQWddb7SnZCr3rFU61auctG2"
-
-    print(f"Reading data for key: {key}")
-
+    key = SUBNET_OWNER
+    
     comp = read_chain_commitment(key, node, subnet_uid)
-
-    print(f"Read data type: {type(comp)}, value: {comp}")
-
+    
     assert comp is not None, "Should return a valid commitment"
-    # assert comp.id == "42", "ID should be 42"
-    # assert comp.repo == "silassilas/base"
-    # assert comp.bench == 100, "Bench should be 100"
+    
+    assert isinstance(comp.id, str), f"ID should be a string, got {type(comp.id)}"
+    assert isinstance(comp.repo, str), f"Repo should be a string, got {type(comp.repo)}"
+    assert isinstance(comp.bench, float), f"Bench should be a float, got {type(comp.bench)}"
+    
+    assert comp.id, "ID should not be empty"
+    assert comp.repo, "Repo should not be empty"
+    assert comp.bench > 0, f"Bench should be positive, got {comp.bench}"
+    
+    bt.logging.info(f"Commitment values: id={comp.id}, repo={comp.repo}, bench={comp.bench}")

@@ -56,14 +56,13 @@ async def main(config: bt.config):
 
     bt.logging.info(f"Starting miner with config: {config}")
 
-
     # Make sure we're registered and have a HuggingFace token.
     assert_registered(wallet, metagraph)
 
     commit_id = model.upload_data(config.hf_repo_id, config.dataset_path)
 
     competition: Optional[Competition] = read_chain_commitment(
-        constants.SUBNET_OWNER, subtensor, config.netuid
+        constants.SUBNET_OWNER, subtensor, int(config.netuid)
     )
     if competition is None:
         bt.logging.error("Failed to read competition commitment")
