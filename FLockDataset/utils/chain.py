@@ -48,59 +48,75 @@ def write_chain_commitment(
         return False
 
 
-def read_chain_commitment(ss58, node, subnet_uid: int) -> Optional[Competition]:
+def read_chain_commitment(ss58: str, node: bt.subtensor, subnet_uid: int) -> Optional[Competition]:
     """
-    Reads JSON data from the chain commitment and returns it as a typed object.
-
-    Args:
-        ss58: The SS58 address of the hotkey
-        node: The subtensor node to connect to
-        subnet_uid: The subnet identifier
-
-    Returns:
-        Competition: The parsed data as a typed object or None if not found
+    Reads JSON data from the chain commitment (RawN) fields, recombines all
+    byte‐tuples, decodes, and returns a Competition, or None.
     """
     try:
-        # Get metadata from chain
         metadata = bt.core.extrinsics.serving.get_metadata(node, subnet_uid, ss58)
-
         if not metadata:
             print(f"No metadata found for hotkey {ss58} on subnet {subnet_uid}")
             return None
 
-        # Extract commitment data - this is a complex nested structure
-        fields = metadata["info"]["fields"]
-
-        if not fields or len(fields) == 0:
+        fields = metadata.get("info", {}).get("fields", ())
+        if not fields:
             print("No fields found in metadata")
             return None
 
-        # The first field contains our commitment
+        # look only at the first field‐tuple
         field = fields[0]
+        if not (isinstance(field, tuple) and field and isinstance(field[0], dict)):
+            print("Unrecognized field structure:", field)
+            return None
 
-        if isinstance(field, tuple) and len(field) > 0:
-            # Extract Raw24 data which contains our JSON
-            if isinstance(field[0], dict) and "Raw24" in field[0]:
-                # The Raw24 field contains a tuple of integer values (ASCII codes)
-                raw_data = field[0]["Raw24"]
-                if isinstance(raw_data, tuple) and len(raw_data) > 0:
-                    # Convert ASCII codes to bytes then to string
-                    byte_data = bytes(raw_data[0])
-                    json_str = byte_data.decode("utf-8")
+        raw_dict = field[0]
+        # find the RawN key
+        raw_key = next((k for k in raw_dict if k.startswith("Raw")), None)
+        if raw_key is None:
+            print("No RawN entry in first field:", raw_dict.keys())
+            return None
 
-                    try:
-                        data_dict = json.loads(json_str)
-                        return Competition.from_dict(data_dict)
-                    except json.JSONDecodeError:
-                        print(f"Failed to parse JSON from chain string: {json_str}")
-                        return None
+        raw_segments = raw_dict[raw_key]  # e.g. ((byte1,byte2…), (byte25,byte26…), …)
+        print(f"🔍 Found {raw_key} with {len(raw_segments)} segment(s)")
 
-        print(f"Could not extract data from the commitment structure")
-        return None
+        # flatten all segments into one bytes object
+        parts: list[bytes] = []
+        for idx, seg in enumerate(raw_segments):
+            # seg may itself be a tuple of ints or a nested tuple-of-tuples
+            if isinstance(seg, (bytes, bytearray)):
+                parts.append(bytes(seg))
+            elif isinstance(seg, (list, tuple)):
+                # if seg[0] is also list/tuple, dive in one level
+                if seg and isinstance(seg[0], (list, tuple)):
+                    for inner in seg:
+                        parts.append(bytes(inner))
+                else:
+                    parts.append(bytes(seg))
+            else:
+                print(f"  ⚠️ unexpected segment #{idx} type={type(seg)}:", seg)
+
+        full_bytes = b"".join(parts)
+        print(f"🔍 combined byte‐length:", len(full_bytes))
+
+        try:
+            json_str = full_bytes.decode("utf-8")
+        except UnicodeDecodeError as e:
+            print("Failed to UTF-8 decode:", e, full_bytes)
+            return None
+
+        print("🔍 decoded JSON:", json_str)
+        try:
+            data = json.loads(json_str)
+        except json.JSONDecodeError as e:
+            print("Failed to parse JSON:", e)
+            return None
+
+        comp = Competition.from_dict(data)
+        print("🔍 Competition.from_dict →", comp)
+        return comp
 
     except Exception as e:
-        print(f"Failed to read chain commitment: {str(e)}")
-        import traceback
-
-        traceback.print_exc()
+        print("Unhandled exception in read_chain_commitment:", e)
+        import traceback; traceback.print_exc()
         return None
