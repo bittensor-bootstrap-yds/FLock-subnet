@@ -62,14 +62,14 @@ class Validator:
         parser.add_argument(
             "--data_dir",
             type=str,
-            default="/workspace/data",
+            default="~/data",
             help="Directory to store miner datasets.",
         )
 
         parser.add_argument(
             "--eval_data_dir",
             type=str,
-            default="/workspace/eval_data",
+            default="~/eval_data",
             help="Directory to store evaluation datasets.",
         )
 
@@ -206,7 +206,7 @@ class Validator:
                     download_dataset(constants.eval_namespace, constants.eval_commit, local_dir="eval_data", cache_dir=self.config.cache_dir)
 
                     bt.logging.info("Starting LoRA training")
-                    eval_loss = train_lora(lucky_num)
+                    eval_loss = train_lora(lucky_num, self.config.cach_dir, self.config.data_dir, self.config.eval_data_dir)
                     bt.logging.info(f"Training complete with eval loss: {eval_loss}")
 
                     metadata_per_uid[uid] = metadata
