@@ -331,6 +331,13 @@ class Validator:
         for uid, score in normalized_scores.items():
             new_weights[uid] = score
 
+        new_weights = torch.where(
+            new_weights < constants.MIN_WEIGHT_THRESHOLD,
+            torch.zeros_like(new_weights),
+            new_weights
+        )
+        bt.logging.debug(f"Thresholded weights (min {constants.MIN_WEIGHT_THRESHOLD}): {new_weights}")
+
         bt.logging.info("Updating database with score deltas")
         for uid in uids_to_eval:
             if uid < len(new_weights):
