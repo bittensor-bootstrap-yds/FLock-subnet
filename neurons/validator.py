@@ -249,6 +249,7 @@ class Validator:
                     eval_loss = train_lora(
                         lucky_num,
                         competition.bench,
+                        competition.rows,
                         cache_dir=self.config.cache_dir,
                         data_dir=miner_data_dir,
                         eval_data_dir=eval_data_dir,
