@@ -162,6 +162,24 @@ python-versions = ">=3.5"
 tests = ["PyHamcrest (>=2.0.2)", "mypy", "pytest (>=4.6)", "pytest-benchmark", "pytest-cov", "pytest-flake8"]
 
 [[package]]
+name = "bitsandbytes"
+version = "0.45.5"
+description = "k-bit optimizers and matrix multiplication routines."
+category = "main"
+optional = false
+python-versions = ">=3.8"
+
+[package.dependencies]
+numpy = ">=1.17"
+torch = ">=2.0,<3"
+
+[package.extras]
+benchmark = ["matplotlib", "pandas"]
+dev = ["bitsandbytes[test]", "build (>=1.0.0,<2)", "pre-commit (>=3.5.0,<4)", "ruff (==0.9.6)", "wheel (>=0.42,<1)"]
+docs = ["hf-doc-builder (==0.5.0)"]
+test = ["einops (>=0.8.0,<0.9.0)", "lion-pytorch (==0.2.3)", "pytest (>=8.3,<9.0)", "scipy (>=1.10.1,<2)", "scipy (>=1.11.4,<2)", "transformers (>=4.30.1,<5)"]
+
+[[package]]
 name = "bittensor"
 version = "9.0.4"
 description = "Bittensor"
@@ -1684,7 +1702,7 @@ propcache = ">=0.2.0"
 [metadata]
 lock-version = "1.1"
 python-versions = "3.10.16"
-content-hash = "05b0817a3ca75b19b20c0935eb363d1f6b49ce86a244c75cec83bdbea8b83bca"
+content-hash = "b3cc3a693626a840889e9e22ac8d45d82c9fbf0583f062979491b4d71c8c6c31"
 
 [metadata.files]
 accelerate = [
@@ -1809,6 +1827,10 @@ attrs = [
 base58 = [
     {file = "base58-2.1.1-py3-none-any.whl", hash = "sha256:11a36f4d3ce51dfc1043f3218591ac4eb1ceb172919cebe05b52a5bcc8d245c2"},
     {file = "base58-2.1.1.tar.gz", hash = "sha256:c5d0cb3f5b6e81e8e35da5754388ddcc6d0d14b6c6a132cb93d69ed580a7278c"},
+]
+bitsandbytes = [
+    {file = "bitsandbytes-0.45.5-py3-none-manylinux_2_24_x86_64.whl", hash = "sha256:a5453f30cc6aab6ccaac364e6bf51a7808d3da5f71763dffeb6d9694c59136e4"},
+    {file = "bitsandbytes-0.45.5-py3-none-win_amd64.whl", hash = "sha256:ed1c61b91d989d6a33fd05737d6edbf5086d8ebc89235ee632c7a19144085da2"},
 ]
 bittensor = [
     {file = "bittensor-9.0.4-py3-none-any.whl", hash = "sha256:bf0a131b2b9acf50d4ec6784a4f975de139ee92a015fff8e211b975d7e853d1a"},

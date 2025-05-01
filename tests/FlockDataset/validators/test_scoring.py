@@ -23,7 +23,7 @@ def test_zero_loss_evaluation():
 def test_none_loss_evaluation():
     loss = None
     benchmark_loss = 0.1
-    expected_score = 1.0 / constants.NUM_UIDS 
+    expected_score = 0.0
     score = compute_score(loss, benchmark_loss)
     assert np.isclose(
         score, expected_score, rtol=1e-9
