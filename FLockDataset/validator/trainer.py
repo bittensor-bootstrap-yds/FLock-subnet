@@ -15,7 +15,6 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from trl import SFTTrainer, SFTConfig
 from .dataset import SFTDataCollator, SFTDataset
 from .constants import model2template
-from FLockDataset import constants
 import bittensor as bt
 
 api = HfApi()
