@@ -96,10 +96,7 @@ def train_lora(
 
     lora_config = LoraConfig(
         r=args.lora_rank,
-        target_modules=[
-            "q_proj",
-            "v_proj",
-        ],
+        target_modules='all-linear',
         lora_alpha=args.lora_alpha,
         lora_dropout=args.lora_dropout,
         task_type="CAUSAL_LM",
