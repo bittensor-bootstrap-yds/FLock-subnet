@@ -4,8 +4,6 @@ from FLockDataset.miners.data import ModelId, ModelMetadata
 from typing import Optional
 from typing import Optional, Tuple, Union
 from bittensor.core.extrinsics.set_weights import set_weights_extrinsic
-from bittensor.core.settings import version_as_int
-
 
 def retrieve_model_metadata(
     subtensor: bt.subtensor, subnet_uid: int, hotkey: str
@@ -102,7 +100,6 @@ def set_weights_with_err_msg(
                 netuid=netuid,
                 uids=uids,
                 weights=weights,
-                version_key=version_as_int,
                 wait_for_inclusion=wait_for_inclusion,
                 wait_for_finalization=wait_for_finalization,
             )
