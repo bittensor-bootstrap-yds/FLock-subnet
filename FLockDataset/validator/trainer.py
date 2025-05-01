@@ -120,6 +120,7 @@ def train_lora(
         logging_dir=None,
         optim="paged_adamw_8bit",
         remove_unused_columns=False,
+        per_device_eval_batch_size=1,
         num_train_epochs=args.num_train_epochs,
         max_seq_length=CONTEXT_LENGTH,
     )
