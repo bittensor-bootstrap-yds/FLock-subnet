@@ -7,7 +7,7 @@ ROOT_DIR = Path(__file__).parent.parent
 SUBNET_OWNER = "5FZGwrY9Ycz8m6fq5rpZCgoSrQWddb7SnZCr3rFU61auctG2"
 NUM_UIDS = 2**8 - 1
 EVAL_SIZE = 500
-DECAY_RATE = 5
+DECAY_RATE = 1
 MIN_WEIGHT_THRESHOLD = 1e-4
 
 
@@ -36,3 +36,4 @@ class Competition:
 
 # eval dataset huggingface
 eval_commit = "main"
+
