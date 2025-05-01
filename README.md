@@ -34,7 +34,7 @@ Validators perform LoRA training on miners' datasets, requiring significant GPU 
 - **RAM:** 16GB
 - **CPU:** 8-core Intel i7 or equivalent
 
-### For Miners 
+### For Miners
 
 Miners focus on dataset creation and uploading, requiring minimal compute:
 
@@ -115,7 +115,7 @@ Before mining, prepare the following:
 
 **Example:**
 
-```jsonl 
+```jsonl
 {"system": "You are a helpful assistant.", "conversations": [{"role": "user", "content": "What is AI?"}, {"role": "assistant", "content": "AI is artificial intelligence."}]}
 {"system": null, "conversations": [{"role": "user", "content": "Tell me a joke."}, {"role": "assistant", "content": "Why don't skeletons fight? They don't have guts."}]}
 ```
@@ -261,4 +261,3 @@ FLock OFF is a decentralized subnet where miners compete to create high-quality 
 - **Fairness:** Fixed training config ensures consistent evaluation
 - **Capacity:** Validators can process ~10,000-20,000 rows per dataset on a 4090, depending on token length and epoch timing
 - **Metrics:** Evaluation loss determines dataset quality, with duplicates penalized
-
