@@ -84,10 +84,11 @@ def train_lora(
     os.environ["PYTHONHASHSEED"] = str(lucky_num)
 
     torch.manual_seed(lucky_num)
-    torch.cuda.manual_seed(lucky_num)
-    torch.cuda.manual_seed_all(lucky_num)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(lucky_num)
+        torch.cuda.manual_seed_all(lucky_num)
 
-    context_length = 512
+    context_length = 8192
     with open(f"FLockDataset/validator/training_args.yaml", "r") as f:
         all_training_args = yaml.safe_load(f)
     model_key = next(iter(all_training_args))

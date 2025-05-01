@@ -29,8 +29,9 @@ tinyllama_template = {
 
 model2template = {
     "Qwen/Qwen1.5-0.5B": qwen_template,
-    "Qwen/Qwen1.5-1.8B": qwen_template,  # TODO: use this one
+    "Qwen/Qwen1.5-1.8B": qwen_template,
     "Qwen/Qwen1.5-7B": qwen_template,
+    "Qwen/Qwen2.5-1.5B-Instruct": qwen_template,
     "google/gemma-2b": gemma_template,
     "google/gemma-7b": gemma_template,
     "meta-llama/Llama-3.2-1B": llama3_template,

@@ -54,7 +54,8 @@ class Validator:
             default=3,
             help="Number of miners to sample for each block.",
         )
-        parser.add_argument("--netuid", type=int, help="The subnet UID.")
+        parser.add_argument("--netuid", type=int, required=True, help="The subnet UID.")
+
 
         parser.add_argument(
             "--cache_dir",
