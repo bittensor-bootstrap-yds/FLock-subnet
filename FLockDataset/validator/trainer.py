@@ -199,16 +199,18 @@ def train_lora(
         token=os.environ["HF_TOKEN"],
         cache_dir=os.path.join(cache_dir, "models") if cache_dir else None,
     )
+    bt.logging.info(f"Loaded eval model")
 
     eval_model = PeftModel.from_pretrained(
         eval_model,
         "output",
         device_map={"": 0},
     )
+    bt.logging.info(f"Loaded eval PeftModel")
     
     # Load the trained LoRA weights into the evaluation model
     eval_model = eval_model.merge_and_unload()
-    
+    bt.logging.info(f"Merged eval model")
     
     # Create a separate trainer for evaluation with the non-quantized model
     eval_trainer = SFTTrainer(
