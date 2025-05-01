@@ -175,8 +175,10 @@ class Validator:
         bt.logging.debug(f"Consensus: {self.consensus}")
 
         bt.logging.info("Reading chain commitment")
+        is_testnet = self.config.network == "test"
+        subnet_owner = constants.get_subnet_owner(is_testnet)
         competition = read_chain_commitment(
-            constants.SUBNET_OWNER, self.subtensor, self.config.netuid
+            subnet_owner, self.subtensor, self.config.netuid
         )
         if competition is None:
             bt.logging.error("Failed to read competition commitment")

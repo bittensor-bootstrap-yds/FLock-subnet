@@ -4,10 +4,18 @@ from dataclasses import dataclass
 from typing import Optional
 
 ROOT_DIR = Path(__file__).parent.parent
-SUBNET_OWNER = "5FZGwrY9Ycz8m6fq5rpZCgoSrQWddb7SnZCr3rFU61auctG2"
 NUM_UIDS = 2**8 - 1
 DECAY_RATE = 1
 MIN_WEIGHT_THRESHOLD = 1e-4
+
+def get_subnet_owner(is_testnet: bool = False) -> str:
+    """
+    Returns the subnet owner based on whether it's a testnet or mainnet.
+    """
+    if is_testnet:
+        return "5FZGwrY9Ycz8m6fq5rpZCgoSrQWddb7SnZCr3rFU61auctG2"
+    else:
+        return "5D7bAeb7ybS72vpxsH9Wrutein45ZDp7a5Vi4uogsZ5BZnzJ"
 
 
 @dataclass
