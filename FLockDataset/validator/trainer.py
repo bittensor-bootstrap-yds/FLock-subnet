@@ -11,7 +11,7 @@ import yaml
 from huggingface_hub import HfApi
 from peft import LoraConfig, PeftModel
 from dataclasses import dataclass
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
+from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, Trainer
 from trl import SFTTrainer, SFTConfig
 from .dataset import SFTDataCollator, SFTDataset
 from .constants import model2template
@@ -213,14 +213,20 @@ def train_lora(
     bt.logging.info(f"Merged eval model")
     
     # Create a separate trainer for evaluation with the non-quantized model
-    eval_trainer = SFTTrainer(
-        model=eval_model,
-        eval_dataset=eval_ds,
-        args=sft_conf,
-        data_collator=SFTDataCollator(tokenizer, max_seq_length=CONTEXT_LENGTH),
-    )
-    
-    # Eval model
-    eval_result = eval_trainer.evaluate()
+    try:
+        eval_trainer = Trainer(
+            model=eval_model,
+            eval_dataset=eval_ds,
+            args=sft_conf,
+            data_collator=SFTDataCollator(tokenizer, max_seq_length=CONTEXT_LENGTH),
+        )
+        
+        # Eval model
+        eval_result = eval_trainer.evaluate()
+    except Exception as e:
+        # traceback
+        import traceback
+        traceback.print_exc()
+        return benchmark_loss
 
     return eval_result["eval_loss"]
