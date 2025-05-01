@@ -5,9 +5,8 @@ from typing import Optional
 
 ROOT_DIR = Path(__file__).parent.parent
 SUBNET_OWNER = "5FZGwrY9Ycz8m6fq5rpZCgoSrQWddb7SnZCr3rFU61auctG2"
-SUBNET_UID = 257
 NUM_UIDS = 2**8 - 1
-EVAL_SIZE = 50
+EVAL_SIZE = 500
 DECAY_RATE = 5
 
 
