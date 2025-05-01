@@ -349,22 +349,12 @@ class Validator:
         bt.logging.debug(f"Consensus: {self.consensus}")
 
         bt.logging.info("Setting weights on chain")
-
-        weight_uids, weight_vals = bt.utils.weight_utils.convert_weights_and_uids_for_emit(
-            self.metagraph.uids.tolist(), 
-            new_weights, 
-        )
-
-        bt.logging.debug(f"🔍 Emitting {len(weight_uids)} weights:")
-        bt.logging.debug(f"    UIDs   = {weight_uids}")
-        bt.logging.debug(f"    Values = {weight_vals}")
-
         set_weights_with_err_msg(
             subtensor=self.subtensor,
             wallet=self.wallet,
             netuid=self.config.netuid,
-            uids=weight_uids, 
-            weights=weight_vals,
+            uids=self.metagraph.uids,
+            weights=new_weights,
             wait_for_inclusion=True,
         )
 
