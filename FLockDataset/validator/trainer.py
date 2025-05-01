@@ -199,7 +199,8 @@ def train_lora(
     )
     
     # Load the trained LoRA weights into the evaluation model
-    eval_model = trainer.model.merge_and_unload()
+    trainer.model.merge_and_unload()
+    eval_model = trainer.model
     
     # Create a separate trainer for evaluation with the non-quantized model
     eval_trainer = SFTTrainer(
