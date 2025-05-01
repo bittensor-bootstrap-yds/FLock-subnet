@@ -34,6 +34,12 @@ class ScoreDB:
         """Update the score for a given UID"""
         c = self.conn.cursor()
         c.execute("UPDATE miner_scores SET score = ? WHERE uid = ?", (new_score, uid))
+        if c.rowcount == 0:
+            # row absent – insert with unknown hotkey
+            c.execute(
+                "INSERT INTO miner_scores (uid, hotkey, score) VALUES (?, '', ?)",
+                (uid, new_score),
+            )
         self.conn.commit()
 
     def get_scores(self, uids: list) -> list:
