@@ -92,10 +92,10 @@ class Validator:
 
         if self.config.cache_dir and self.config.cache_dir.startswith('~'):
             self.config.cache_dir = os.path.expanduser(self.config.cache_dir)
-        
+
         if self.config.data_dir and self.config.data_dir.startswith('~'):
             self.config.data_dir = os.path.expanduser(self.config.data_dir)
-        
+
         if self.config.eval_data_dir and self.config.eval_data_dir.startswith('~'):
             self.config.eval_data_dir = os.path.expanduser(self.config.eval_data_dir)
 
@@ -229,7 +229,7 @@ class Validator:
 
                     bt.logging.info(
                         f"Downloading eval dataset: {eval_namespace}/{constants.eval_commit}"
-                    )                   
+                    )
 
                     download_dataset(
                         eval_namespace,
@@ -237,6 +237,14 @@ class Validator:
                         local_dir=eval_data_dir,
                         cache_dir=self.config.cache_dir,
                     )
+
+                    for fname in os.listdir(eval_data_dir):
+                        if fname.endswith(".jsonl"):
+                            src = os.path.join(eval_data_dir, fname)
+                            dst = os.path.join(eval_data_dir, "data.jsonl")
+                            if src != dst:
+                                os.replace(src, dst)
+                                bt.logging.info(f"Renamed {fname} → data.jsonl")
 
                     bt.logging.info("Starting LoRA training")
                     eval_loss = train_lora(
@@ -254,7 +262,11 @@ class Validator:
 
                 except Exception as e:
                     bt.logging.error(f"train error: {e}")
-                    scores_per_uid[uid] = 0
+                    scores_per_uid[uid] = 1 / constants.NUM_UIDS
+                    fallback = 1.0 / 255.0
+                    scores_per_uid[uid] = fallback
+                    bt.logging.info(f"Assigned fallback score {fallback:.6f} to UID {uid} due to train error")
+
 
                 finally:
                     bt.logging.info("Cleaning cache folder")
@@ -304,7 +316,7 @@ class Validator:
 
             for uid in group[1:]:
                 duplicates.add(uid)
-                scores_per_uid[uid] = 0
+                scores_per_uid[uid] = 1 / constants.NUM_UIDS
 
         bt.logging.info("Normalizing scores")
         normalized_scores = {}
@@ -349,12 +361,14 @@ class Validator:
         bt.logging.debug(f"Consensus: {self.consensus}")
 
         bt.logging.info("Setting weights on chain")
+        uids_py = self.metagraph.uids.tolist()
+        weights_py = new_weights.tolist()
         set_weights_with_err_msg(
             subtensor=self.subtensor,
             wallet=self.wallet,
             netuid=self.config.netuid,
-            uids=self.metagraph.uids,
-            weights=new_weights,
+            uids=uids_py,
+            weights=weights_py,
             wait_for_inclusion=True,
         )
 
