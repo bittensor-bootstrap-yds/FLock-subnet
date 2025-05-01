@@ -1,6 +1,5 @@
 import pytest
 import bittensor as bt
-from FLockDataset.constants import SUBNET_OWNER
 from FLockDataset.utils.chain import read_chain_commitment
 
 SUBNET_OWNER_KEY = "5FZGwrY9Ycz8m6fq5rpZCgoSrQWddb7SnZCr3rFU61auctG2"
@@ -15,7 +14,7 @@ def node():
 def test_read_chain_commitment(node):
     """Test reading commitment data from another neuron on the chain"""
     subnet_uid = 257
-    key = SUBNET_OWNER
+    key = SUBNET_OWNER_KEY
 
     comp = read_chain_commitment(key, node, subnet_uid)
 
