@@ -9,7 +9,7 @@ torch.use_deterministic_algorithms(True)
 
 import yaml
 from huggingface_hub import HfApi
-from peft import LoraConfig
+from peft import LoraConfig, PeftModel
 from dataclasses import dataclass
 from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from trl import SFTTrainer, SFTConfig
@@ -188,7 +188,9 @@ def train_lora(
 
     # Train model
     trainer.train()
-    
+    # save model
+    trainer.save_model('output')
+
     # Create a separate model for evaluation without quantization
     eval_model = AutoModelForCausalLM.from_pretrained(
         model_key,
@@ -197,10 +199,16 @@ def train_lora(
         token=os.environ["HF_TOKEN"],
         cache_dir=os.path.join(cache_dir, "models") if cache_dir else None,
     )
+
+    eval_model = PeftModel.from_pretrained(
+        eval_model,
+        "output",
+        device_map={"": 0},
+    )
     
     # Load the trained LoRA weights into the evaluation model
-    trainer.model.merge_and_unload()
-    eval_model = trainer.model
+    eval_model = eval_model.merge_and_unload()
+    
     
     # Create a separate trainer for evaluation with the non-quantized model
     eval_trainer = SFTTrainer(
