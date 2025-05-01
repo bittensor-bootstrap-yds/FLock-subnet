@@ -22,9 +22,11 @@ def test_read_chain_commitment(node):
     assert isinstance(comp.id, str), f"ID should be a string, got {type(comp.id)}"
     assert isinstance(comp.repo, str), f"Repo should be a string, got {type(comp.repo)}"
     assert isinstance(comp.bench, float), f"Bench should be a float, got {type(comp.bench)}"
+    assert isinstance(comp.rows, int), f"Rows should be an int, got {type(comp.rows)}"
     
     assert comp.id, "ID should not be empty"
     assert comp.repo, "Repo should not be empty"
     assert comp.bench > 0, f"Bench should be positive, got {comp.bench}"
+    assert comp.rows > 0, f"Rows should be positive, got {comp.rows}"
     
     bt.logging.info(f"Commitment values: id={comp.id}, repo={comp.repo}, bench={comp.bench}")

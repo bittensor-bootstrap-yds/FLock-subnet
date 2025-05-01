@@ -68,6 +68,7 @@ def clean_cache_folder(
 def train_lora(
     lucky_num: int,
     benchmark_loss: float,
+    eval_size: int,
     cache_dir: str = None,
     data_dir: str = "data",
     eval_data_dir: str = "eval_data",
@@ -147,11 +148,11 @@ def train_lora(
         template=model2template[model_key],
     )
 
-    if len(train_ds) > constants.EVAL_SIZE:
+    if len(train_ds) > eval_size:
         bt.logging.info(
-            f"Dataset has {len(train_ds)} examples, expected {constants.EVAL_SIZE}, pruning..."
+            f"Dataset has {len(train_ds)} examples, expected {eval_size}, pruning..."
         )
-        train_ds.data_list = train_ds.data_list[: constants.EVAL_SIZE]
+        train_ds.data_list = train_ds.data_list[:eval_size]
 
     eval_path = os.path.join(eval_data_dir, "data.jsonl")
     if not os.path.exists(eval_path):
