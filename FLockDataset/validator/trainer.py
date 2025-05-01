@@ -88,7 +88,7 @@ def train_lora(
         torch.cuda.manual_seed(lucky_num)
         torch.cuda.manual_seed_all(lucky_num)
 
-    context_length = 8192
+    CONTEXT_LENGTH = 4096
     with open(f"FLockDataset/validator/training_args.yaml", "r") as f:
         all_training_args = yaml.safe_load(f)
     model_key = next(iter(all_training_args))
@@ -124,7 +124,7 @@ def train_lora(
         optim="paged_adamw_8bit",
         remove_unused_columns=False,
         num_train_epochs=args.num_train_epochs,
-        max_seq_length=context_length,
+        max_seq_length=CONTEXT_LENGTH,
     )
 
     tokenizer = AutoTokenizer.from_pretrained(
@@ -145,7 +145,7 @@ def train_lora(
     train_ds = SFTDataset(
         file=os.path.join(data_dir, "data.jsonl"),
         tokenizer=tokenizer,
-        max_seq_length=context_length,
+        max_seq_length=CONTEXT_LENGTH,
         template=model2template[model_key],
     )
 
@@ -174,7 +174,7 @@ def train_lora(
     eval_ds = SFTDataset(
         file=eval_path,
         tokenizer=tokenizer,
-        max_seq_length=context_length,
+        max_seq_length=CONTEXT_LENGTH,
         template=model2template[model_key],
     )
 
@@ -185,7 +185,7 @@ def train_lora(
         eval_dataset=eval_ds,
         args=sft_conf,
         peft_config=lora_config,
-        data_collator=SFTDataCollator(tokenizer, max_seq_length=context_length),
+        data_collator=SFTDataCollator(tokenizer, max_seq_length=CONTEXT_LENGTH),
     )
 
     # Train model
