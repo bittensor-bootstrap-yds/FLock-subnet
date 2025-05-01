@@ -58,7 +58,9 @@ def read_chain_commitment(
     try:
         metadata = bt.core.extrinsics.serving.get_metadata(node, subnet_uid, ss58)
         if not metadata:
-            bt.logging.warning(f"No metadata found for hotkey {ss58} on subnet {subnet_uid}")
+            bt.logging.warning(
+                f"No metadata found for hotkey {ss58} on subnet {subnet_uid}"
+            )
             return None
 
         fields = metadata.get("info", {}).get("fields", ())
@@ -68,8 +70,8 @@ def read_chain_commitment(
 
         field = fields[0]
         if not (isinstance(field, tuple) and field and isinstance(field[0], dict)):
-           bt.logging.warning(f"Unrecognized field structure: {field}")
-           return None
+            bt.logging.warning(f"Unrecognized field structure: {field}")
+            return None
 
         raw_dict = field[0]
         raw_key = next((k for k in raw_dict if k.startswith("Raw")), None)
@@ -90,7 +92,9 @@ def read_chain_commitment(
                 else:
                     parts.append(bytes(seg))
             else:
-                bt.logging.warning(f"  ⚠️ unexpected segment #{idx} type={type(seg)}:", seg)
+                bt.logging.warning(
+                    f"  ⚠️ unexpected segment #{idx} type={type(seg)}:", seg
+                )
 
         full_bytes = b"".join(parts)
         bt.logging.debug(f"🔍 combined byte‐length: {len(full_bytes)}")
