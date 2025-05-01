@@ -5,6 +5,7 @@ from typing import Optional
 from typing import Optional, Tuple, Union
 from bittensor.core.extrinsics.set_weights import set_weights_extrinsic
 
+
 def retrieve_model_metadata(
     subtensor: bt.subtensor, subnet_uid: int, hotkey: str
 ) -> Optional[ModelMetadata]:

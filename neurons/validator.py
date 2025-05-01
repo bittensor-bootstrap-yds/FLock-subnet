@@ -56,7 +56,6 @@ class Validator:
         )
         parser.add_argument("--netuid", type=int, required=True, help="The subnet UID.")
 
-
         parser.add_argument(
             "--cache_dir",
             type=str,
@@ -90,13 +89,13 @@ class Validator:
         bt.logging.info("Initializing validator")
         self.config = Validator.config()
 
-        if self.config.cache_dir and self.config.cache_dir.startswith('~'):
+        if self.config.cache_dir and self.config.cache_dir.startswith("~"):
             self.config.cache_dir = os.path.expanduser(self.config.cache_dir)
 
-        if self.config.data_dir and self.config.data_dir.startswith('~'):
+        if self.config.data_dir and self.config.data_dir.startswith("~"):
             self.config.data_dir = os.path.expanduser(self.config.data_dir)
 
-        if self.config.eval_data_dir and self.config.eval_data_dir.startswith('~'):
+        if self.config.eval_data_dir and self.config.eval_data_dir.startswith("~"):
             self.config.eval_data_dir = os.path.expanduser(self.config.eval_data_dir)
 
         bt.logging(config=self.config)
@@ -266,8 +265,9 @@ class Validator:
                     fallback = 1.0 / 255.0
                     scores_per_uid[uid] = fallback
                     block_per_uid[uid] = metadata.block
-                    bt.logging.info(f"Assigned fallback score {fallback:.6f} to UID {uid} due to train error")
-
+                    bt.logging.info(
+                        f"Assigned fallback score {fallback:.6f} to UID {uid} due to train error"
+                    )
 
                 finally:
                     bt.logging.info("Cleaning cache folder")
@@ -282,7 +282,12 @@ class Validator:
         bt.logging.info("Checking for duplicate scores")
         for uid_i, score_i in scores_per_uid.items():
             # Skip UIDs with None or 0 scores, or already processed UIDs
-            if score_i is None or score_i == 0 or score_i == 1 / constants.NUM_UIDS or uid_i in processed_uids:
+            if (
+                score_i is None
+                or score_i == 0
+                or score_i == 1 / constants.NUM_UIDS
+                or uid_i in processed_uids
+            ):
                 bt.logging.debug(
                     f"Skipping UID {uid_i} with score {score_i} (None, zero, or already processed)"
                 )
@@ -327,7 +332,9 @@ class Validator:
                     f"Computing normalized score for UID {uid} with raw score {scores_per_uid[uid]}"
                 )
                 if competition.bench is None or competition.bench <= 0:
-                    bt.logging.warning(f"Invalid benchmark ({competition.bench}) for UID {uid}; defaulting score to 0")
+                    bt.logging.warning(
+                        f"Invalid benchmark ({competition.bench}) for UID {uid}; defaulting score to 0"
+                    )
                     normalized_score = 1.0 / constants.NUM_UIDS
                 else:
                     normalized_score = compute_score(
@@ -347,9 +354,11 @@ class Validator:
         new_weights = torch.where(
             new_weights < constants.MIN_WEIGHT_THRESHOLD,
             torch.zeros_like(new_weights),
-            new_weights
+            new_weights,
         )
-        bt.logging.debug(f"Thresholded weights (min {constants.MIN_WEIGHT_THRESHOLD}): {new_weights}")
+        bt.logging.debug(
+            f"Thresholded weights (min {constants.MIN_WEIGHT_THRESHOLD}): {new_weights}"
+        )
 
         bt.logging.info("Updating database with score deltas")
         for uid in uids_to_eval:

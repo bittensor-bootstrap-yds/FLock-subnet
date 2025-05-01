@@ -35,6 +35,6 @@ class Competition:
             bt.logging.warning(f"Failed to parse Competition from dict: {e}")
             return None
 
+
 # eval dataset huggingface
 eval_commit = "main"
-
