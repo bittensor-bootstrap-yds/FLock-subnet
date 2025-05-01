@@ -265,6 +265,7 @@ class Validator:
                     scores_per_uid[uid] = 1 / constants.NUM_UIDS
                     fallback = 1.0 / 255.0
                     scores_per_uid[uid] = fallback
+                    block_per_uid[uid] = metadata.block
                     bt.logging.info(f"Assigned fallback score {fallback:.6f} to UID {uid} due to train error")
 
 
@@ -281,7 +282,7 @@ class Validator:
         bt.logging.info("Checking for duplicate scores")
         for uid_i, score_i in scores_per_uid.items():
             # Skip UIDs with None or 0 scores, or already processed UIDs
-            if score_i is None or score_i == 0 or uid_i in processed_uids:
+            if score_i is None or score_i == 0 or score_i == 1 / constants.NUM_UIDS or uid_i in processed_uids:
                 bt.logging.debug(
                     f"Skipping UID {uid_i} with score {score_i} (None, zero, or already processed)"
                 )
@@ -292,7 +293,7 @@ class Validator:
             for uid_j, score_j in scores_per_uid.items():
                 if (
                     uid_i != uid_j
-                    and score_j is not None
+                    and score_j not in (None, 0, 1 / constants.NUM_UIDS)
                     and score_j != 0
                     and uid_j not in processed_uids
                 ):
