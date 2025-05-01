@@ -215,10 +215,8 @@ def train_lora(
     # Create a separate trainer for evaluation with the non-quantized model
     eval_trainer = SFTTrainer(
         model=eval_model,
-        train_dataset=None,
         eval_dataset=eval_ds,
         args=sft_conf,
-        peft_config=lora_config,
         data_collator=SFTDataCollator(tokenizer, max_seq_length=CONTEXT_LENGTH),
     )
     
