@@ -188,7 +188,30 @@ def train_lora(
 
     # Train model
     trainer.train()
+    
+    # Create a separate model for evaluation without quantization
+    eval_model = AutoModelForCausalLM.from_pretrained(
+        model_key,
+        torch_dtype=torch.bfloat16,
+        device_map={"": 0},
+        token=os.environ["HF_TOKEN"],
+        cache_dir=os.path.join(cache_dir, "models") if cache_dir else None,
+    )
+    
+    # Load the trained LoRA weights into the evaluation model
+    eval_model = trainer.model.merge_and_unload()
+    
+    # Create a separate trainer for evaluation with the non-quantized model
+    eval_trainer = SFTTrainer(
+        model=eval_model,
+        train_dataset=None,
+        eval_dataset=eval_ds,
+        args=sft_conf,
+        peft_config=lora_config,
+        data_collator=SFTDataCollator(tokenizer, max_seq_length=CONTEXT_LENGTH),
+    )
+    
     # Eval model
-    eval_result = trainer.evaluate()
+    eval_result = eval_trainer.evaluate()
 
     return eval_result["eval_loss"]
