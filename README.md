@@ -197,14 +197,14 @@ Replace placeholders:
   - Retrieves metadata (e.g., ModelId) from the chain
   - Downloads the dataset from Hugging Face (e.g., yourusername/my-dataset:abc123...)
   - Downloads a fixed evaluation dataset (eval_data/data.jsonl)
-  - Trains a LoRA model on the miner's dataset using meta-llama/Llama-3.2-1B
+  - Trains a LoRA model on the miner's dataset using Qwen/Qwen2.5-1.5B-Instruct
   - Evaluates loss on eval_data
   - Computes win rates, adjusts weights, and submits them to the chain
 
 **Training Details:**
 
 - **Model:** Qwen/Qwen2.5-1.5B-Instruct
-- **LoRA Config:** Rank=8, Alpha=16, Dropout=0.1, targeting all linear layers
+- **LoRA Config:** Rank=16, Alpha=32, Dropout=0.1, targeting all linear layers
 - **Training Args:** Batch size=2, gradient accumulation=4, 2 epochs, 4096-token context
 - **Data Capacity:** With 24GB VRAM, ~10,000-20,000 rows (assuming ~256 tokens/row) per dataset, though limited by epoch duration and miner sample size (32)
 
@@ -239,7 +239,7 @@ FLock OFF is a decentralized subnet where miners compete to create high-quality 
 
 - Fetch miner metadata from the chain
 - Download datasets from Hugging Face
-- Train LoRA on meta-llama/Llama-3.2-1B with each dataset
+- Train LoRA on Qwen/Qwen2.5-1.5B-Instruct with each dataset
 - Evaluate loss on a standard test set
 - Compute win rates and update weights on-chain
 
@@ -257,7 +257,7 @@ FLock OFF is a decentralized subnet where miners compete to create high-quality 
 
 ### LoRA Training Evaluation
 
-- **Efficiency:** LoRA adapts meta-llama/Llama-3.2-1B with minimal parameters (rank=4)
+- **Efficiency:** LoRA adapts Qwen/Qwen2.5-1.5B-Instruct with minimal parameters
 - **Fairness:** Fixed training config ensures consistent evaluation
 - **Capacity:** Validators can process ~10,000-20,000 rows per dataset on a 4090, depending on token length and epoch timing
 - **Metrics:** Evaluation loss determines dataset quality, with duplicates penalized
