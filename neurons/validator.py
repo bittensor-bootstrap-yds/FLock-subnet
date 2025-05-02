@@ -176,6 +176,8 @@ class Validator:
 
         bt.logging.info("Reading chain commitment")
         is_testnet = self.config.network == "test"
+        bt.logging.info(f"Network: {self.config.network}")
+        bt.logging.info(f"Is testnet: {is_testnet}")
         subnet_owner = constants.get_subnet_owner(is_testnet)
         competition = read_chain_commitment(
             subnet_owner, self.subtensor, self.config.netuid
