@@ -1,8 +1,8 @@
-# FLockDataset
+# FLock OFF
 
 ## A Dataset Quality Competition Network for Machine Learning
 
-FLockDataset is a Bittensor subnet designed to incentivize the creation of high-quality datasets for machine learning. Miners generate and upload datasets to Hugging Face, while validators assess their quality by training LoRA (Low-Rank Adaptation) models on a standardized base model (meta-llama/Llama-3.2-1B) and rewarding miners based on performance.
+FLock OFF is a Bittensor subnet designed to incentivize the creation of high-quality datasets for machine learning. Miners generate and upload datasets to Hugging Face, while validators assess their quality by training LoRA (Low-Rank Adaptation) models on a standardized base model (Qwen/Qwen2.5-1.5B-Instruct) and rewarding miners based on performance.
 
 ---
 
@@ -10,13 +10,13 @@ FLockDataset is a Bittensor subnet designed to incentivize the creation of high-
 
 - [Compute Requirements](#compute-requirements)
 - [Installation](#installation)
-- [How to Run FLockDataset](#how-to-run-flockdataset)
+- [How to Run FLock OFF](#how-to-run-flock-off)
   - [Running a Miner](#running-a-miner)
   - [Running a Validator](#running-a-validator)
 - [What is a Dataset Competition Network?](#what-is-a-dataset-competition-network)
   - [Role of a Miner](#role-of-a-miner)
   - [Role of a Validator](#role-of-a-validator)
-- [Features of FLockDataset](#features-of-flockdataset)
+- [Features of FLock OFF](#features-of-flock-off)
   - [Hugging Face Integration](#hugging-face-integration)
   - [LoRA Training Evaluation](#lora-training-evaluation)
 
@@ -34,7 +34,7 @@ Validators perform LoRA training on miners' datasets, requiring significant GPU 
 - **RAM:** 16GB
 - **CPU:** 8-core Intel i7 or equivalent
 
-### For Miners 
+### For Miners
 
 Miners focus on dataset creation and uploading, requiring minimal compute:
 
@@ -49,7 +49,7 @@ Miners focus on dataset creation and uploading, requiring minimal compute:
 
 ### Overview
 
-In order to run FLockDataset, you will need to install the FLockDataset package and set up a Hugging Face account. The following instructions apply to all major operating systems.
+In order to run FLock OFF, you will need to install the FLock OFF package and set up a Hugging Face account. The following instructions apply to all major operating systems.
 
 ### Clone the repository
 
@@ -60,13 +60,13 @@ cd FLock-subnet
 
 ### Install dependencies with poetry
 
-1. Install Poetry: 
+1. Install Poetry:
 
 ```bash
 curl -sSL https://install.python-poetry.org | python3 -
 ```
 
-2. Install Poetry:
+2. Install using Poetry:
 
 ```bash
 poetry install
@@ -79,15 +79,15 @@ poetry shell
 2. Generate an API token at huggingface.co/settings/tokens
 3. Create a .env file in the project root:
 
-```
+```bash
 HF_TOKEN=<YOUR_HUGGING_FACE_API_TOKEN>
-``` 
+```
 
 4. Ensure the token has write access for miners (to upload datasets) and read access for validators
 
 ---
 
-## How to Run FLockDataset
+## How to Run FLock OFF
 
 ### Running a Miner
 
@@ -99,7 +99,7 @@ Before mining, prepare the following:
    - Create a dataset repository on Hugging Face (e.g., yourusername/my-dataset)
    - Ensure your API token has write permissions
 
-2. **Dataset Creation:** 
+2. **Dataset Creation:**
    - Generate a dataset in JSONL format (one JSON object per line)
    - Each entry must follow this structure:
 
@@ -115,12 +115,12 @@ Before mining, prepare the following:
 
 **Example:**
 
-```jsonl 
+```jsonl
 {"system": "You are a helpful assistant.", "conversations": [{"role": "user", "content": "What is AI?"}, {"role": "assistant", "content": "AI is artificial intelligence."}]}
 {"system": null, "conversations": [{"role": "user", "content": "Tell me a joke."}, {"role": "assistant", "content": "Why don't skeletons fight? They don't have guts."}]}
 ```
 
-3. **Bittensor Wallet:** Register your hotkey on the subnet 
+3. **Bittensor Wallet:** Register your hotkey on the subnet
 
 #### Steps to Run a Miner
 
@@ -141,6 +141,7 @@ python3 neurons/miner.py \
 ```
 
 Replace placeholders:
+
 - `your_coldkey_name`: Your Bittensor wallet name
 - `your_hotkey_name`: Your miner's hotkey
 - `finney`: Network (use local for testing)
@@ -149,11 +150,13 @@ Replace placeholders:
 - `./data/data.jsonl`: Path to your dataset
 
 **What Happens:**
+
 - The script uploads data.jsonl to your Hugging Face repo
 - It retrieves a commit hash (e.g., abc123...) and constructs a ModelId (e.g., yourusername/my-dataset:ORIGINAL_COMPETITION_ID:abc123...)
 - It registers this metadata on the Bittensor chain (retrying every 120 seconds if the 20-minute commit cooldown applies)
 
 **Tips:**
+
 - Ensure your dataset is unique—validators penalize duplicates
 - Monitor logs (--logging.trace) for upload or chain errors
 
@@ -168,6 +171,7 @@ Replace placeholders:
 #### Steps to Run a Validator
 
 **Ensure GPU Setup:**
+
 - Install CUDA (e.g., 12.1) and cuDNN compatible with PyTorch
 - Verify with nvidia-smi and torch.cuda.is_available()
 
@@ -181,27 +185,31 @@ python3 neurons/validator.py \
 ```
 
 Replace placeholders:
+
 - `your_coldkey_name`: Your Bittensor wallet name
-- `netuid`: Subnet UID 
+- `netuid`: Subnet UID
 
 **What Happens:**
+
 - Syncs the metagraph to identify active miners
 - Selects up to 32 miners per epoch using an EvalQueue
 - For each miner:
   - Retrieves metadata (e.g., ModelId) from the chain
   - Downloads the dataset from Hugging Face (e.g., yourusername/my-dataset:abc123...)
-  - Downloads a fixed evaluation dataset (eval_data/eval_data.jsonl)
+  - Downloads a fixed evaluation dataset (eval_data/data.jsonl)
   - Trains a LoRA model on the miner's dataset using meta-llama/Llama-3.2-1B
   - Evaluates loss on eval_data
   - Computes win rates, adjusts weights, and submits them to the chain
 
 **Training Details:**
-- **Model:** meta-llama/Llama-3.2-1B (4-bit quantized)
-- **LoRA Config:** Rank=4, Alpha=8, Dropout=0.1, targeting q_proj and v_proj
-- **Training Args:** Batch size=1, gradient accumulation=8, 3 epochs, 512-token context
+
+- **Model:** Qwen/Qwen2.5-1.5B-Instruct
+- **LoRA Config:** Rank=8, Alpha=16, Dropout=0.1, targeting all linear layers
+- **Training Args:** Batch size=2, gradient accumulation=4, 2 epochs, 4096-token context
 - **Data Capacity:** With 24GB VRAM, ~10,000-20,000 rows (assuming ~256 tokens/row) per dataset, though limited by epoch duration and miner sample size (32)
 
 **Tips:**
+
 - Ensure ample storage for datasets and model checkpoints
 - Use --logging.trace to debug training or chain issues
 
@@ -209,13 +217,14 @@ Replace placeholders:
 
 ## What is a Dataset Competition Network?
 
-FLockDataset is a decentralized subnet where miners compete to create high-quality datasets, and validators evaluate them using LoRA training. Rewards (in TAO) are distributed based on dataset performance, not raw compute power.
+FLock OFF is a decentralized subnet where miners compete to create high-quality datasets, and validators evaluate them using LoRA training. Rewards (in TAO) are distributed based on dataset performance, not raw compute power.
 
 ### Role of a Miner
 
 **Task:** Create and upload datasets that improve model performance (e.g., low evaluation loss).
 
 **Process:**
+
 - Curate a dataset (e.g., conversational pairs in JSONL)
 - Upload to Hugging Face with version control
 - Register metadata on-chain (~0.01 TAO fee)
@@ -227,6 +236,7 @@ FLockDataset is a decentralized subnet where miners compete to create high-quali
 **Task:** Assess dataset quality and set miner rewards.
 
 **Process:**
+
 - Fetch miner metadata from the chain
 - Download datasets from Hugging Face
 - Train LoRA on meta-llama/Llama-3.2-1B with each dataset
@@ -237,7 +247,7 @@ FLockDataset is a decentralized subnet where miners compete to create high-quali
 
 ---
 
-## Features of FLockDataset
+## Features of FLock OFF
 
 ### Hugging Face Integration
 
@@ -251,4 +261,3 @@ FLockDataset is a decentralized subnet where miners compete to create high-quali
 - **Fairness:** Fixed training config ensures consistent evaluation
 - **Capacity:** Validators can process ~10,000-20,000 rows per dataset on a 4090, depending on token length and epoch timing
 - **Metrics:** Evaluation loss determines dataset quality, with duplicates penalized
-

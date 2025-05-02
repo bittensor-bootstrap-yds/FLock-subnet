@@ -1,5 +1,6 @@
 import os
 from huggingface_hub import HfApi
+import bittensor as bt
 
 
 def upload_data(repo_name: str, local_file_path: str) -> str:
@@ -11,10 +12,9 @@ def upload_data(repo_name: str, local_file_path: str) -> str:
             repo_type="dataset",
         )
     except Exception as e:
-        print(
+        bt.logging.info(
             f"Repo {repo_name} already exists. Will commit the new version."
         )
-
     commit_message = api.upload_file(
         path_or_fileobj=local_file_path,
         path_in_repo="data.jsonl",
@@ -23,6 +23,6 @@ def upload_data(repo_name: str, local_file_path: str) -> str:
     )
     # get commit hash
     commit_hash = commit_message.oid
-    print(f"Commit hash: {commit_hash}")
-    print(f"Repo name: {repo_name}")
+    bt.logging.debug(f"Commit hash: {commit_hash}")
+    bt.logging.debug(f"Repo name: {repo_name}")
     return commit_hash

@@ -2,14 +2,20 @@ import time
 import asyncio
 import argparse
 import bittensor as bt
+from typing import Optional
 
-from FLockDataset import constants
-from FLockDataset.utils.chain import assert_registered
-from FLockDataset.miners import model, chain
-from FLockDataset.miners.data import ModelId
+from flockoff import constants
+from flockoff.utils.chain import (
+    assert_registered,
+    read_chain_commitment,
+    Competition,
+)
+from flockoff.miners import model, chain
+from flockoff.miners.data import ModelId
 from dotenv import load_dotenv
 
 load_dotenv()
+
 
 def get_config():
     # Initialize an argument parser
@@ -46,17 +52,34 @@ async def main(config: bt.config):
 
     wallet = bt.wallet(config=config)
     subtensor = bt.subtensor(config=config)
-    metagraph: bt.metagraph = subtensor.metagraph(271)
+    metagraph: bt.metagraph = subtensor.metagraph(int(config.netuid))
+
+    bt.logging.info(f"Starting miner with config: {config}")
 
     # Make sure we're registered and have a HuggingFace token.
     assert_registered(wallet, metagraph)
 
     commit_id = model.upload_data(config.hf_repo_id, config.dataset_path)
 
-    model_id_with_commit = ModelId(namespace=config.hf_repo_id, commit=commit_id,
-                                   competition_id=constants.ORIGINAL_COMPETITION_ID)
-    bt.logging.success(f"Now committing to the chain with model_id: {model_id_with_commit}")
-    print(f"Now committing to the chain with model_id: {model_id_with_commit}")
+    is_testnet = config.subtensor.network == "test"
+    bt.logging.info(f"Is testnet: {is_testnet}")
+    subnet_owner = constants.get_subnet_owner(is_testnet)
+    competition: Optional[Competition] = read_chain_commitment(
+        subnet_owner, subtensor, int(config.netuid)
+    )
+    if competition is None:
+        bt.logging.error("Failed to read competition commitment")
+        return
+
+    model_id_with_commit = ModelId(
+        namespace=config.hf_repo_id, commit=commit_id, competition_id=competition.id
+    )
+    bt.logging.success(
+        f"Now committing to the chain with model_id: {model_id_with_commit}"
+    )
+    bt.logging.debug(
+        f"Now committing to the chain with model_id: {model_id_with_commit}"
+    )
 
     # We can only commit to the chain every 20 minutes, so run this in a loop, until successful.
     while True:
@@ -77,6 +100,5 @@ async def main(config: bt.config):
 
 
 if __name__ == "__main__":
-    # Parse and print configuration
     config = get_config()
     asyncio.run(main(config))

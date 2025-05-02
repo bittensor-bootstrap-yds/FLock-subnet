@@ -1,11 +1,12 @@
 import json
 import torch
 import bittensor as bt
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset as TorchDataset
+from datasets import Dataset as HFDataset
 from typing import Any, Dict, List
 
 
-class SFTDataset(Dataset):
+class SFTDataset(TorchDataset):
     def __init__(self, file, tokenizer, max_seq_length, template):
         self.tokenizer = tokenizer
         self.system_format = template["system_format"]
@@ -13,7 +14,7 @@ class SFTDataset(Dataset):
         self.assistant_format = template["assistant_format"]
 
         self.max_seq_length = max_seq_length
-        ("Loading data: {}".format(file))
+        bt.logging.info("Loading data: {}".format(file))
         with open(file, "r", encoding="utf8") as f:
             data_list = f.readlines()
         bt.logging.success("There are {} data in dataset".format(len(data_list)))
@@ -73,6 +74,19 @@ class SFTDataset(Dataset):
         }
         return inputs
 
+    def map(self, fn, batched: bool = False, **kwargs):
+        """
+        Convert this entire dataset into a HuggingFace `Dataset`,
+        then apply the given fn via HF's `.map()` interface.
+        Returns a HF `Dataset` (so Trainer can call shuffle()/map()/etc).
+        """
+        # 1) build a list of dicts by iterating __getitem__
+        raw = [self[i] for i in range(len(self))]
+        # 2) wrap as HF Dataset
+        hf_ds = HFDataset.from_list(raw)
+        # 3) apply the user-provided function
+        return hf_ds.map(fn, batched=batched, **kwargs)
+
 
 class SFTDataCollator(object):
     def __init__(self, tokenizer, max_seq_length):
@@ -94,7 +108,7 @@ class SFTDataCollator(object):
             attention_mask = x["attention_mask"]
             target_mask = x["target_mask"]
             if input_ids is None:
-                print("some input_ids is None")
+                bt.logging.debug("some input_ids is None")
                 continue
             padding_len = batch_max_len - len(input_ids)
             # Pad

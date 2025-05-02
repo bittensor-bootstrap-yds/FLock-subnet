@@ -16,37 +16,65 @@
 
 import os
 import argparse
-import math
 import asyncio
 import torch
 import typing
-import multiprocessing
 import bittensor as bt
-from FLockDataset import constants
-from FLockDataset.utils.chain import assert_registered
-from FLockDataset.validator.chain import retrieve_model_metadata, set_weights_with_err_msg
-from FLockDataset.validator.validator_utils import EvalQueue, compute_wins, adjust_for_vtrust
-from FLockDataset.validator.trainer import train_lora, download_dataset, clean_cache_folder
+import math
+import numpy as np
+from flockoff import constants
+from flockoff.utils.chain import assert_registered, read_chain_commitment
+from flockoff.validator.chain import (
+    retrieve_model_metadata,
+    set_weights_with_err_msg,
+)
+from flockoff.validator.validator_utils import compute_score
+from flockoff.validator.trainer import (
+    train_lora,
+    download_dataset,
+    clean_cache_folder,
+)
+from flockoff.validator.database import ScoreDB
 
 
 class Validator:
     @staticmethod
     def config():
+        bt.logging.info("Parsing command line arguments")
         parser = argparse.ArgumentParser()
         parser.add_argument(
             "--blocks_per_epoch",
             type=int,
-            default=100,
+            default=360,
             help="Number of blocks to wait before setting weights.",
         )
         parser.add_argument(
             "--miner_sample_size",
             type=int,
-            default=3, 
+            default=3,
             help="Number of miners to sample for each block.",
         )
+        parser.add_argument("--netuid", type=int, required=True, help="The subnet UID.")
+
         parser.add_argument(
-            "--netuid", type=str, help="The subnet UID."
+            "--cache_dir",
+            type=str,
+            default="~/data/hf_cache",
+            help="Directory to store downloaded model files.",
+        )
+
+        parser.add_argument(
+            "--data_dir",
+            type=str,
+            default="~/data/training_data",
+            help="Directory to store miner datasets.",
+        )
+
+        parser.add_argument(
+            "--eval_data_dir",
+            type=str,
+            default="~/data/eval_data",
+            help="Directory to store evaluation datasets.",
         )
 
         bt.subtensor.add_args(parser)
@@ -54,166 +82,316 @@ class Validator:
         bt.wallet.add_args(parser)
         bt.axon.add_args(parser)
         config = bt.config(parser)
+        bt.logging.debug(f"Parsed config: {config}")
         return config
 
     def __init__(self):
+        bt.logging.info("Initializing validator")
         self.config = Validator.config()
-        bt.logging(config=self.config)
-        bt.logging.on()
 
+        if self.config.cache_dir and self.config.cache_dir.startswith("~"):
+            self.config.cache_dir = os.path.expanduser(self.config.cache_dir)
+
+        if self.config.data_dir and self.config.data_dir.startswith("~"):
+            self.config.data_dir = os.path.expanduser(self.config.data_dir)
+
+        if self.config.eval_data_dir and self.config.eval_data_dir.startswith("~"):
+            self.config.eval_data_dir = os.path.expanduser(self.config.eval_data_dir)
+
+        bt.logging(config=self.config)
         bt.logging.info(f"Starting validator with config: {self.config}")
 
         # === Bittensor objects ====
+        bt.logging.info("Initializing wallet")
         self.wallet = bt.wallet(config=self.config)
-        self.subtensor = bt.subtensor(config=self.config)
+        bt.logging.info(f"Wallet initialized: {self.wallet}")
+        bt.logging.info("Initializing subtensor")
+        try:
+            self.subtensor = bt.subtensor(config=self.config)
+            bt.logging.info(f"Subtensor initialized: {self.subtensor}")
+            bt.logging.info(f"Connected to network: {self.subtensor.network}")
+            bt.logging.info(f"Chain endpoint: {self.subtensor.chain_endpoint}")
+        except Exception as e:
+            bt.logging.error(f"Failed to initialize subtensor: {e}")
+            raise
+
         self.dendrite = bt.dendrite(wallet=self.wallet)
+
+        bt.logging.info(f"Fetching metagraph for netuid: {self.config.netuid}")
         self.metagraph: bt.metagraph = self.subtensor.metagraph(self.config.netuid)
         torch.backends.cudnn.benchmark = True
 
+        bt.logging.info("Checking if wallet is registered on subnet")
         self.uid = assert_registered(self.wallet, self.metagraph)
+
+        bt.logging.info("Initializing weights tensor")
         self.weights = torch.zeros_like(torch.tensor(self.metagraph.S))
+        bt.logging.info(f"Weights initialized with shape: {self.weights.shape}")
+
         self.uids_to_eval: typing.Dict[str, typing.List] = {}
+        bt.logging.info("Initializing score database")
+        self.score_db = ScoreDB("scores.db")
+        bt.logging.info("Score database initialized")
+        self.rng = np.random.default_rng()
+        bt.logging.info("Validator initialization complete")
 
-    async def try_sync_metagraph(self, ttl: int) -> bool:
-        def sync_metagraph(endpoint):
-            # Update self.metagraph
-            self.metagraph = bt.subtensor(endpoint).metagraph(self.config.netuid)
+    async def try_sync_metagraph(self) -> bool:
+        bt.logging.trace("Syncing metagraph")
+        try:
+            self.metagraph = self.subtensor.metagraph(self.config.netuid)
             self.metagraph.save()
-
-        process = multiprocessing.Process(
-            target=sync_metagraph, args=(self.subtensor.chain_endpoint,)
-        )
-        process.start()
-        process.join(timeout=ttl)
-        if process.is_alive():
-            process.terminate()
-            process.join()
-            bt.logging.error(f"Failed to sync metagraph after {ttl} seconds")
+            bt.logging.info("Synced metagraph")
+            return True
+        except Exception as e:
+            bt.logging.error(f"Error syncing metagraph: {e}")
             return False
 
-        bt.logging.info("Synced metagraph")
-        self.metagraph.load()
-
-        return True
-
     async def run_step(self):
+        bt.logging.info("Starting run step")
+        bt.logging.info("Attempting to sync metagraph")
 
-        # Update self.metagraph
-        synced_metagraph = await self.try_sync_metagraph(ttl=60)
+        synced_metagraph = await self.try_sync_metagraph()
+        if not synced_metagraph:
+            bt.logging.warning("Failed to sync metagraph")
+            return
 
-        bt.logging.trace("Pulling competition ids for all hotkeys")
-        competition_ids: typing.Dict[int, typing.Optional[str]] = {}
-        for uid, hotkey in enumerate(list(self.metagraph.hotkeys)):
-            competition_ids[uid] = constants.ORIGINAL_COMPETITION_ID
+        bt.logging.info("Getting current UIDs and hotkeys")
+        current_uids = self.metagraph.uids.tolist()
+        hotkeys = self.metagraph.hotkeys
+        bt.logging.info(f"Current UIDs: {current_uids}")
 
-        self.weights.copy_(torch.tensor(self.metagraph.C))
-        # Update consensus.
+        base_score = 1.0 / constants.NUM_UIDS
+        for uid in current_uids:
+            self.score_db.insert_or_reset_uid(uid, hotkeys[uid], base_score)
+
+        bt.logging.info("Getting scores from database")
+        db_scores = self.score_db.get_scores(current_uids)
+
+        bt.logging.info("Setting weights tensor from database scores")
+        self.weights = torch.tensor(db_scores, dtype=torch.float32)
+        bt.logging.debug(f"Weights tensor: {self.weights}")
+
         self.consensus = self.metagraph.C
-        if synced_metagraph:
-            bt.logging.info("metagraph sync success: {}".format(self.consensus))
-        else:
-            bt.logging.warning("metagraph sync failed: {}".format(self.consensus))
+        bt.logging.debug(f"Consensus: {self.consensus}")
 
-        for competition in constants.COMPETITION_SCHEDULE:
-            bt.logging.trace(
-                f"Building consensus state for competition {competition.competition_id}"
-            )
-            # Evaluate all models on the first iteration.
-            consensus = [i for i, val in enumerate(list(self.metagraph.consensus)) if
-                         competition_ids[i] == competition.competition_id]
+        
+        is_testnet = self.config.subtensor.network == "test"
+        bt.logging.info(f"Network: {self.config.subtensor.network}")
+        bt.logging.info(f"Is testnet: {is_testnet}")
+        bt.logging.info("Reading chain commitment")
+        subnet_owner = constants.get_subnet_owner(is_testnet)
+        competition = read_chain_commitment(
+            subnet_owner, self.subtensor, self.config.netuid
+        )
+        if competition is None:
+            bt.logging.error("Failed to read competition commitment")
+            return
 
-            self.uids_queue = EvalQueue(self.weights.cpu().numpy())
-            uids_to_eval = self.uids_queue.take(self.config.miner_sample_size)
-            bt.logging.debug(f"Uids to eval: {uids_to_eval}")
-            print(f"Uids to eval: {uids_to_eval}")
-            self.uids_to_eval[competition.competition_id] = uids_to_eval
+        eval_namespace = competition.repo
 
-            consensus_map = {uid: self.weights[uid].item() for uid in consensus}
+        bt.logging.info(f"Competition commitment: {competition}")
+
+        bt.logging.info("Sampling competitors for evaluation")
+        competitors = current_uids
+        sample_size = min(self.config.miner_sample_size, len(competitors))
+        uids_to_eval = self.rng.choice(competitors, sample_size, replace=False).tolist()
+        lucky_num = int.from_bytes(os.urandom(4), "little")
+        bt.logging.debug(f"UIDs to evaluate: {uids_to_eval}")
+
+        scores_per_uid = {}
+        block_per_uid = {}
+        for uid in uids_to_eval:
+            bt.logging.info(f"Evaluating UID: {uid}")
             bt.logging.info(
-                f"Consensus for competition {competition.competition_id}: {consensus_map}"
+                f"Retrieving model metadata for hotkey: {self.metagraph.hotkeys[uid]}"
             )
+            metadata = retrieve_model_metadata(
+                self.subtensor, self.config.netuid, self.metagraph.hotkeys[uid]
+            )
+            if metadata is not None:
+                bt.logging.info(f"Retrieved metadata: {metadata}")
+                try:
+                    miner_data_dir = os.path.join(self.config.data_dir, f"miner_{uid}")
+                    eval_data_dir = self.config.eval_data_dir
 
-            # Sync the first few models, we can sync the rest while running.
+                    bt.logging.info(f"Using data directory: {miner_data_dir}")
+                    bt.logging.info(f"Using evaluation directory: {eval_data_dir}")
 
-            uids_to_sync = list(uids_to_eval)[:self.config.miner_sample_size]
-            hotkeys = [self.metagraph.hotkeys[uid] for uid in uids_to_sync]
+                    os.makedirs(miner_data_dir, exist_ok=True)
+                    os.makedirs(eval_data_dir, exist_ok=True)
 
-            print(f"hotkeys: {hotkeys}")
-            scores_per_uid = {uid: None for uid in uids_to_sync}
-            metadata_per_uid = {uid: None for uid in uids_to_sync}
-            block_per_uid = {uid: None for uid in uids_to_sync}
-            is_duplicate = []
-            lucky_num = int.from_bytes(os.urandom(4), 'little')
-            for uid in uids_to_sync:
-                metadata = retrieve_model_metadata(self.subtensor, self.config.netuid, self.metagraph.hotkeys[uid])
-                print(f"uid: {uid}")
-                print(f"results: {metadata}")
-                if metadata is not None:
-                    try:
-                        download_dataset(metadata.id.namespace, metadata.id.commit)
-                        download_dataset(constants.eval_namespace, constants.eval_commit, local_dir="eval_data")
-                        eval_loss = train_lora(lucky_num)
-                        other_uid = [k for k, v in scores_per_uid.items() if
-                                     v is not None and math.isclose(eval_loss, v, rel_tol=1e-9)]
+                    bt.logging.info(
+                        f"Downloading training dataset: {metadata.id.namespace}/{metadata.id.commit}"
+                    )
 
-                        # check if duplicate
-                        for range_id in other_uid:
-                            if metadata_per_uid[range_id].block > metadata.block:
-                                is_duplicate.append(range_id)
-                            else:
-                                is_duplicate.append(uid)
+                    download_dataset(
+                        metadata.id.namespace,
+                        metadata.id.commit,
+                        local_dir=miner_data_dir,
+                        cache_dir=self.config.cache_dir,
+                    )
 
-                        metadata_per_uid[uid] = metadata
-                        scores_per_uid[uid] = eval_loss
-                        block_per_uid[uid] = metadata.block
-                    except Exception as e:
-                        bt.logging.error(f"train error: {e}")
-                        scores_per_uid[uid] = 0
-                    finally:
-                        clean_cache_folder()
+                    bt.logging.info(
+                        f"Downloading eval dataset: {eval_namespace}/{constants.eval_commit}"
+                    )
+
+                    download_dataset(
+                        eval_namespace,
+                        constants.eval_commit,
+                        local_dir=eval_data_dir,
+                        cache_dir=self.config.cache_dir,
+                    )
+
+                    for fname in os.listdir(eval_data_dir):
+                        if fname.endswith(".jsonl"):
+                            src = os.path.join(eval_data_dir, fname)
+                            dst = os.path.join(eval_data_dir, "data.jsonl")
+                            if src != dst:
+                                os.replace(src, dst)
+                                bt.logging.info(f"Renamed {fname} → data.jsonl")
+
+                    bt.logging.info("Starting LoRA training")
+                    eval_loss = train_lora(
+                        lucky_num,
+                        competition.bench,
+                        competition.rows,
+                        cache_dir=self.config.cache_dir,
+                        data_dir=miner_data_dir,
+                        eval_data_dir=eval_data_dir,
+                    )
+                    bt.logging.info(f"Training complete with eval loss: {eval_loss}")
+
+                    scores_per_uid[uid] = eval_loss
+                    block_per_uid[uid] = metadata.block
+                    bt.logging.info(f"Stored evaluation results for UID {uid}")
+
+                except Exception as e:
+                    bt.logging.error(f"train error: {e}")
+                    scores_per_uid[uid] = 1 / constants.NUM_UIDS
+                    fallback = 1.0 / 255.0
+                    scores_per_uid[uid] = fallback
+                    block_per_uid[uid] = metadata.block
+                    bt.logging.info(
+                        f"Assigned fallback score {fallback:.6f} to UID {uid} due to train error"
+                    )
+
+                finally:
+                    bt.logging.info("Cleaning cache folder")
+                    clean_cache_folder(miner_data_dir, eval_data_dir)
+            else:
+                bt.logging.warning(f"No metadata found for UID {uid}")
+                scores_per_uid[uid] = 0
+
+        duplicate_groups = []
+        processed_uids = set()
+
+        bt.logging.info("Checking for duplicate scores")
+        for uid_i, score_i in scores_per_uid.items():
+            # Skip UIDs with None or 0 scores, or already processed UIDs
+            if (
+                score_i is None
+                or score_i == 0
+                or score_i == 1 / constants.NUM_UIDS
+                or uid_i in processed_uids
+            ):
+                bt.logging.debug(
+                    f"Skipping UID {uid_i} with score {score_i} (None, zero, or already processed)"
+                )
+                continue
+
+            # Find all UIDs with nearly identical scores
+            similar_uids = [uid_i]
+            for uid_j, score_j in scores_per_uid.items():
+                if (
+                    uid_i != uid_j
+                    and score_j not in (None, 0, 1 / constants.NUM_UIDS)
+                    and score_j != 0
+                    and uid_j not in processed_uids
+                ):
+                    if math.isclose(score_i, score_j, rel_tol=1e-9):
+                        bt.logging.debug(
+                            f"Found similar score: {uid_i}({score_i}) and {uid_j}({score_j})"
+                        )
+                        similar_uids.append(uid_j)
+
+            # If we found duplicates, add them to a group
+            if len(similar_uids) > 1:
+                bt.logging.info(f"Found duplicate group: {similar_uids}")
+                duplicate_groups.append(similar_uids)
+                processed_uids.update(similar_uids)
+
+        duplicates = set()
+        for group in duplicate_groups:
+            bt.logging.info(f"Processing duplicate group: {group}")
+            group.sort(key=lambda uid: block_per_uid[uid])
+            bt.logging.info(f"Sorted by block: {group}")
+
+            for uid in group[1:]:
+                duplicates.add(uid)
+                scores_per_uid[uid] = 1 / constants.NUM_UIDS
+
+        bt.logging.info("Normalizing scores")
+        normalized_scores = {}
+        for uid in uids_to_eval:
+            if scores_per_uid[uid] is not None and scores_per_uid[uid] != 0:
+                bt.logging.debug(
+                    f"Computing normalized score for UID {uid} with raw score {scores_per_uid[uid]}"
+                )
+                if competition.bench is None or competition.bench <= 0:
+                    bt.logging.warning(
+                        f"Invalid benchmark ({competition.bench}) for UID {uid}; defaulting score to 0"
+                    )
+                    normalized_score = 1.0 / constants.NUM_UIDS
                 else:
-                    scores_per_uid[uid] = 0
-            uids_whitelist = [item for item in uids_to_sync if item not in is_duplicate]
-            wins, win_rate = compute_wins(
-                uids_whitelist, scores_per_uid,
-                block_per_uid
-            )
-            model_weights = torch.tensor(
-                [win_rate[uid] for uid in win_rate.keys()], dtype=torch.float32
-            )
-            step_weights = torch.softmax(model_weights / constants.temperature, dim=0)
-            new_weights = torch.zeros_like(self.weights)
-            for i, uid_i in enumerate(win_rate.keys()):
-                new_weights[uid_i] = step_weights[i]
+                    normalized_score = compute_score(
+                        scores_per_uid[uid], competition.bench, competition.pow
+                    )
+                normalized_scores[uid] = normalized_score
+            else:
+                bt.logging.debug(f"Setting zero normalized score for UID {uid}")
+                normalized_scores[uid] = 0
+        bt.logging.debug(f"Normalized scores: {normalized_scores}")
 
-            consensus_alpha = constants.CONSTANT_ALPHA
-            lr = constants.lr
-            self.weights = (
-                    (1 - lr) * self.weights + lr * new_weights
-            )
-            # To prevent the weights from completely diverging from consensus, blend in the consensus weights.
-            C_normalized = torch.tensor(self.consensus / self.consensus.sum()).nan_to_num(0.0)
-            self.weights = (1 - consensus_alpha) * self.weights + consensus_alpha * C_normalized
-            self.weights = self.weights.nan_to_num(0.0)
-            adjusted_weights = adjust_for_vtrust(self.weights.cpu().numpy(), self.consensus)
-            adjusted_weights = torch.tensor(adjusted_weights, dtype=torch.float32)
+        bt.logging.info("Creating new weights tensor")
+        new_weights = self.weights.clone()
+        for uid, score in normalized_scores.items():
+            new_weights[uid] = score
 
-            bt.logging.debug(f'new weights: {new_weights}')
-            bt.logging.debug(f'self weights: {self.weights}')
-            bt.logging.debug(f'consensus: {self.consensus}')
-            bt.logging.debug(f'adjusted_weights: {adjusted_weights}')
+        new_weights = torch.where(
+            new_weights < constants.MIN_WEIGHT_THRESHOLD,
+            torch.zeros_like(new_weights),
+            new_weights,
+        )
+        bt.logging.debug(
+            f"Thresholded weights (min {constants.MIN_WEIGHT_THRESHOLD}): {new_weights}"
+        )
 
-            set_weights_with_err_msg(
-                subtensor=self.subtensor,
-                wallet=self.wallet,
-                netuid=self.config.netuid,
-                uids=self.metagraph.uids,
-                weights=adjusted_weights,
-            )
+        bt.logging.info("Updating database with score deltas")
+        for uid in uids_to_eval:
+            if uid < len(new_weights):
+                final_weight = new_weights[uid].item()
+                self.score_db.update_score(uid, final_weight)
+
+        self.weights = new_weights
+        bt.logging.debug(f"New weights: {new_weights}")
+        bt.logging.debug(f"Consensus: {self.consensus}")
+
+        bt.logging.info("Setting weights on chain")
+        uids_py = self.metagraph.uids.tolist()
+        weights_py = new_weights.tolist()
+        set_weights_with_err_msg(
+            subtensor=self.subtensor,
+            wallet=self.wallet,
+            netuid=self.config.netuid,
+            uids=uids_py,
+            weights=weights_py,
+            wait_for_inclusion=True,
+        )
 
     async def run(self):
         while True:
             await self.run_step()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     asyncio.run(Validator().run())
