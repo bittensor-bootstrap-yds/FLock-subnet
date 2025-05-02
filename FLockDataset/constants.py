@@ -15,7 +15,7 @@ def get_subnet_owner(is_testnet: bool = False) -> str:
     if is_testnet:
         return "5FZGwrY9Ycz8m6fq5rpZCgoSrQWddb7SnZCr3rFU61auctG2"
     else:
-        return "5D7bAeb7ybS72vpxsH9Wrutein45ZDp7a5Vi4uogsZ5BZnzJ"
+        return "5DFcEniKrQRbCakLFGY3UqPL3ZbNnTQHp8LTvLfipWhE2Yfr"
 
 
 @dataclass
