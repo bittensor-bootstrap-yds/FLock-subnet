@@ -174,11 +174,11 @@ class Validator:
         self.consensus = self.metagraph.C
         bt.logging.debug(f"Consensus: {self.consensus}")
 
+        
         is_testnet = self.config.subtensor.network == "test"
+        bt.logging.info(f"Network: {self.config.subtensor.network}")
         bt.logging.info(f"Is testnet: {is_testnet}")
         bt.logging.info("Reading chain commitment")
-        bt.logging.info(f"Network: {self.config.network}")
-        bt.logging.info(f"Is testnet: {is_testnet}")
         subnet_owner = constants.get_subnet_owner(is_testnet)
         competition = read_chain_commitment(
             subnet_owner, self.subtensor, self.config.netuid
