@@ -1,6 +1,6 @@
 import numpy as np
-from FLockDataset.validator.validator_utils import compute_score
-from FLockDataset import constants
+from flockoff.validator.validator_utils import compute_score
+from flockoff import constants
 
 def test_pow_8(): 
     benchmark_loss = 0.16 

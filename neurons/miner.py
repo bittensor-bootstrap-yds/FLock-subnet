@@ -4,14 +4,14 @@ import argparse
 import bittensor as bt
 from typing import Optional
 
-from FLockDataset import constants
-from FLockDataset.utils.chain import (
+from flockoff import constants
+from flockoff.utils.chain import (
     assert_registered,
     read_chain_commitment,
     Competition,
 )
-from FLockDataset.miners import model, chain
-from FLockDataset.miners.data import ModelId
+from flockoff.miners import model, chain
+from flockoff.miners.data import ModelId
 from dotenv import load_dotenv
 
 load_dotenv()

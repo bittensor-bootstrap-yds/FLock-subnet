@@ -22,19 +22,19 @@ import typing
 import bittensor as bt
 import math
 import numpy as np
-from FLockDataset import constants
-from FLockDataset.utils.chain import assert_registered, read_chain_commitment
-from FLockDataset.validator.chain import (
+from flockoff import constants
+from flockoff.utils.chain import assert_registered, read_chain_commitment
+from flockoff.validator.chain import (
     retrieve_model_metadata,
     set_weights_with_err_msg,
 )
-from FLockDataset.validator.validator_utils import compute_score
-from FLockDataset.validator.trainer import (
+from flockoff.validator.validator_utils import compute_score
+from flockoff.validator.trainer import (
     train_lora,
     download_dataset,
     clean_cache_folder,
 )
-from FLockDataset.validator.database import ScoreDB
+from flockoff.validator.database import ScoreDB
 
 
 class Validator:

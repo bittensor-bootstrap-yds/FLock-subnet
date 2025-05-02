@@ -1,6 +1,6 @@
 import torch
 import bittensor as bt
-from FLockDataset.miners.data import ModelId, ModelMetadata
+from flockoff.miners.data import ModelId, ModelMetadata
 from typing import Optional
 from typing import Optional, Tuple, Union
 from bittensor.core.extrinsics.set_weights import set_weights_extrinsic
