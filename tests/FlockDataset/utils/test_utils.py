@@ -2,21 +2,23 @@ import pytest
 import bittensor as bt
 from FLockDataset.utils.chain import read_chain_commitment
 
-SUBNET_OWNER_KEY = "5FZGwrY9Ycz8m6fq5rpZCgoSrQWddb7SnZCr3rFU61auctG2"
+SUBNET_OWNER_KEY = "5DFcEniKrQRbCakLFGY3UqPL3ZbNnTQHp8LTvLfipWhE2Yfr"
 
 
 @pytest.fixture
 def node():
     """Create a subtensor with test network connection"""
-    return bt.subtensor("test")
+    return bt.subtensor()
 
 
 def test_read_chain_commitment(node):
     """Test reading commitment data from another neuron on the chain"""
-    subnet_uid = 257
+    subnet_uid = 96
     key = SUBNET_OWNER_KEY
 
     comp = read_chain_commitment(key, node, subnet_uid)
+
+    print(comp)
 
     assert comp is not None, "Should return a valid commitment"
 
