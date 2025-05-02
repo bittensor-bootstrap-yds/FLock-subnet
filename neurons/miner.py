@@ -61,7 +61,7 @@ async def main(config: bt.config):
 
     commit_id = model.upload_data(config.hf_repo_id, config.dataset_path)
 
-    is_testnet = self.config.subtensor.network == "test"
+    is_testnet = config.subtensor.network == "test"
     bt.logging.info(f"Is testnet: {is_testnet}")
     subnet_owner = constants.get_subnet_owner(is_testnet)
     competition: Optional[Competition] = read_chain_commitment(
