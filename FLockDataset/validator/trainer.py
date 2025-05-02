@@ -188,23 +188,40 @@ def train_lora(
 
     # Train model
     trainer.train()
+    # save model
+    trainer.save_model('output')
 
-        # Load the trained LoRA weights into the evaluation model
-    eval_model = trainer.model.merge_and_unload()
-    bt.logging.info(f"Merged LORA model")
+    # Create a separate model for evaluation without quantization
+    eval_model = AutoModelForCausalLM.from_pretrained(
+        model_key,
+        torch_dtype=torch.bfloat16,
+        device_map={"": 0},
+        token=os.environ["HF_TOKEN"],
+        cache_dir=os.path.join(cache_dir, "models") if cache_dir else None,
+    )
+    bt.logging.info(f"Loaded eval model")
+
+    eval_model = PeftModel.from_pretrained(
+        eval_model,
+        "output",
+        device_map={"": 0},
+    )
+    bt.logging.info(f"Loaded eval PeftModel")
+    
+    # Load the trained LoRA weights into the evaluation model
+    eval_model = eval_model.merge_and_unload()
+    bt.logging.info(f"Merged eval model")
     
     # Create a separate trainer for evaluation with the non-quantized model
+
     eval_trainer = Trainer(
         model=eval_model,
         eval_dataset=eval_ds,
         args=sft_conf,
         data_collator=SFTDataCollator(tokenizer, max_seq_length=CONTEXT_LENGTH),
     )
-    
+        
     # Eval model
     eval_result = eval_trainer.evaluate()
-
-    # delete the output directory
-    shutil.rmtree("output")
 
     return eval_result["eval_loss"]
