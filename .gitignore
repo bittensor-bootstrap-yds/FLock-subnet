@@ -104,6 +104,7 @@ celerybeat.pid
 
 # Environments
 .env
+.wallet/
 .venv
 env/
 venv/
@@ -143,3 +144,9 @@ Thumbs.db
 # data/*
 data
 data/*
+
+# db 
+scores.db
+
+# Scripts 
+run.sh

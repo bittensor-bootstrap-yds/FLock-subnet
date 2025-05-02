@@ -15,11 +15,11 @@ class ModelId(BaseModel):
     """Uniquely identifies a trained model"""
 
     MAX_REPO_ID_LENGTH: ClassVar[int] = (
-            MAX_METADATA_BYTES
-            - GIT_COMMIT_LENGTH
-            - SHA256_BASE_64_LENGTH
-            - MAX_COMPETITION_ID_LENGTH
-            - 4  # separators
+        MAX_METADATA_BYTES
+        - GIT_COMMIT_LENGTH
+        - SHA256_BASE_64_LENGTH
+        - MAX_COMPETITION_ID_LENGTH
+        - 4  # separators
     )
 
     namespace: str = Field(
