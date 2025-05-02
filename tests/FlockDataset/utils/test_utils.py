@@ -1,6 +1,6 @@
 import pytest
 import bittensor as bt
-from FLockDataset.utils.chain import read_chain_commitment
+from flockoff.utils.chain import read_chain_commitment
 
 # SUBNET_OWNER_KEY = "5DFcEniKrQRbCakLFGY3UqPL3ZbNnTQHp8LTvLfipWhE2Yfr"
 SUBNET_OWNER_KEY = "5FZGwrY9Ycz8m6fq5rpZCgoSrQWddb7SnZCr3rFU61auctG2"

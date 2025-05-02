@@ -1,5 +1,5 @@
 import bittensor as bt
-from FLockDataset import constants
+from flockoff import constants
 
 
 def compute_score(loss, benchmark_loss, power):

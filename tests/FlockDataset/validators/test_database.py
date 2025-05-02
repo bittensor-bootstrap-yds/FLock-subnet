@@ -1,5 +1,5 @@
 import pytest
-from FLockDataset.validator.database import ScoreDB
+from flockoff.validator.database import ScoreDB
 
 
 @pytest.fixture

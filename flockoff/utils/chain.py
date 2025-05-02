@@ -1,6 +1,6 @@
 import json
 import bittensor as bt
-from FLockDataset.constants import Competition
+from flockoff.constants import Competition
 from typing import Optional
 
 
