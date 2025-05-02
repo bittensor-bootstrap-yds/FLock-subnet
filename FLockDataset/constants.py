@@ -26,6 +26,7 @@ class Competition:
     repo: str
     bench: float
     rows: int
+    pow: int
 
     @classmethod
     def from_dict(cls, data: dict) -> Optional["Competition"]:
@@ -38,7 +39,8 @@ class Competition:
             repo_val = str(data.get("repo", ""))
             bench_val = float(data.get("bench", 0.0))
             rows_val = int(data.get("rows", 250))
-            return cls(id=id_val, repo=repo_val, bench=bench_val, rows=rows_val)
+            pow_val = int(data.get("pow", 0))
+            return cls(id=id_val, repo=repo_val, bench=bench_val, rows=rows_val, pow=pow_val)
         except (TypeError, ValueError) as e:
             bt.logging.warning(f"Failed to parse Competition from dict: {e}")
             return None
