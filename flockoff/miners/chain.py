@@ -96,7 +96,6 @@ async def store_model_metadata(
     bt.logging.debug(
         f"Wallet hotkey: {wallet.hotkey.ss58_address if hasattr(wallet, 'hotkey') else 'Not available'}"
     )
-    bt.logging.debug(f"Wallet coldkey: {wallet.coldkey.ss58_address}")
 
     # Get network status before committing
     try:
