@@ -11,7 +11,12 @@ import yaml
 from huggingface_hub import HfApi
 from peft import LoraConfig, PeftModel
 from dataclasses import dataclass
-from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig, Trainer
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    BitsAndBytesConfig,
+    Trainer,
+)
 from trl import SFTTrainer, SFTConfig
 from .dataset import SFTDataCollator, SFTDataset
 from .constants import model2template
@@ -43,15 +48,19 @@ def download_dataset(
     if not os.path.isabs(local_dir):
         local_dir = os.path.abspath(local_dir)
 
-    db   = ScoreDB("scores.db")
+    db = ScoreDB("scores.db")
     last = db.get_revision(namespace)
     # only skip if we've recorded the same revision *and* dir still exists
     if last == revision and os.path.isdir(local_dir):
-        bt.logging.info(f"[HF] {namespace}@{revision} already present; skipping download.")
+        bt.logging.info(
+            f"[HF] {namespace}@{revision} already present; skipping download."
+        )
         return
     # if revision changed and dir exists, clear it so we'll redownload clean
     if last is not None and last != revision and os.path.isdir(local_dir):
-        bt.logging.info(f"[HF] Revision changed: {last} → {revision}, removing old data.")
+        bt.logging.info(
+            f"[HF] Revision changed: {last} → {revision}, removing old data."
+        )
         shutil.rmtree(local_dir, ignore_errors=True)
     # make sure the folder is there before we download
     os.makedirs(local_dir, exist_ok=True)
@@ -74,6 +83,7 @@ def clean_cache_folder(cache_dir: str = None):
             shutil.rmtree(cache_dir)
         except Exception as e:
             bt.logging.warning(f"Could not clean cache_dir {cache_dir}: {e}")
+
 
 def train_lora(
     lucky_num: int,
@@ -200,7 +210,7 @@ def train_lora(
     # Train model
     trainer.train()
     # save model
-    trainer.save_model('output')
+    trainer.save_model("output")
 
     # Create a separate model for evaluation without quantization
     eval_model = AutoModelForCausalLM.from_pretrained(
@@ -218,11 +228,11 @@ def train_lora(
         device_map={"": 0},
     )
     bt.logging.info(f"Loaded eval PeftModel")
-    
+
     # Load the trained LoRA weights into the evaluation model
     eval_model = eval_model.merge_and_unload()
     bt.logging.info(f"Merged eval model")
-    
+
     # Create a separate trainer for evaluation with the non-quantized model
 
     eval_trainer = Trainer(
@@ -231,7 +241,7 @@ def train_lora(
         args=sft_conf,
         data_collator=SFTDataCollator(tokenizer, max_seq_length=CONTEXT_LENGTH),
     )
-        
+
     # Eval model
     eval_result = eval_trainer.evaluate()
 
