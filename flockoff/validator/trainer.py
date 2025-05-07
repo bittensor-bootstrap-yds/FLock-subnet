@@ -16,6 +16,7 @@ from trl import SFTTrainer, SFTConfig
 from .dataset import SFTDataCollator, SFTDataset
 from .constants import model2template
 import bittensor as bt
+from flockoff.validator.database import ScoreDB
 
 api = HfApi()
 
@@ -42,27 +43,37 @@ def download_dataset(
     if not os.path.isabs(local_dir):
         local_dir = os.path.abspath(local_dir)
 
+    db   = ScoreDB("scores.db")
+    last = db.get_revision(namespace)
+    # only skip if we've recorded the same revision *and* dir still exists
+    if last == revision and os.path.isdir(local_dir):
+        bt.logging.info(f"[HF] {namespace}@{revision} already present; skipping download.")
+        return
+    # if revision changed and dir exists, clear it so we'll redownload clean
+    if last is not None and last != revision and os.path.isdir(local_dir):
+        bt.logging.info(f"[HF] Revision changed: {last} → {revision}, removing old data.")
+        shutil.rmtree(local_dir, ignore_errors=True)
+    # make sure the folder is there before we download
     os.makedirs(local_dir, exist_ok=True)
+
+    bt.logging.info(f"[HF] Downloading dataset {namespace}@{revision} → {local_dir}")
     api.snapshot_download(
         repo_id=namespace, local_dir=local_dir, revision=revision, repo_type="dataset"
     )
 
+    db.set_revision(namespace, revision)
 
-def clean_cache_folder(
-    data_dir: str = None,
-    eval_data_dir: str = None,
-    cache_dir: str = None,
-):
-    """
-    Remove any leftover data / eval_data / cache data
-    """
-    for d in (data_dir, eval_data_dir, cache_dir):  # ← changed
-        if d and os.path.exists(d):
-            try:
-                shutil.rmtree(d)
-            except Exception as e:
-                bt.logging.warning(f"Could not clean {d}: {e}")
 
+def clean_cache_folder(cache_dir: str = None):
+    """
+    Remove only the HuggingFace cache to free up disk.
+    Dataset directories are now persisted and managed by download_dataset.
+    """
+    if cache_dir and os.path.exists(cache_dir):
+        try:
+            shutil.rmtree(cache_dir)
+        except Exception as e:
+            bt.logging.warning(f"Could not clean cache_dir {cache_dir}: {e}")
 
 def train_lora(
     lucky_num: int,

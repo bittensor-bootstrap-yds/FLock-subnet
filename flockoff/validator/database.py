@@ -1,5 +1,5 @@
 import sqlite3
-
+from typing import Optional
 
 class ScoreDB:
     def __init__(self, db_path: str):
@@ -13,6 +13,34 @@ class ScoreDB:
         c.execute(
             """CREATE TABLE IF NOT EXISTS miner_scores
                      (uid INTEGER, hotkey TEXT, score REAL, PRIMARY KEY (uid, hotkey))"""
+        )
+
+        c.execute(
+            """CREATE TABLE IF NOT EXISTS dataset_revisions
+                       (namespace TEXT PRIMARY KEY, revision TEXT)"""
+        )
+
+        self.conn.commit()
+
+    def get_revision(self, namespace: str) -> typing.Optional[str]: 
+        """Return last stored revision for this namespace (or None)."""
+        c = self.conn.cursor()
+        c.execute(
+            "SELECT revision FROM dataset_revisions WHERE namespace = ?", (namespace,)
+        )
+        row = c.fetchone()
+        return row[0] if row else None
+
+    def set_revision(self, namespace: str, revision: str):
+        """Upsert the revision for this namespace."""
+        c = self.conn.cursor()
+        c.execute(
+            """
+            INSERT INTO dataset_revisions(namespace, revision)
+            VALUES (?, ?)
+            ON CONFLICT(namespace) DO UPDATE SET revision=excluded.revision
+            """,
+            (namespace, revision),
         )
         self.conn.commit()
 

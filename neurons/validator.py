@@ -184,6 +184,7 @@ class Validator:
         bt.logging.info(f"Is testnet: {is_testnet}")
         bt.logging.info("Reading chain commitment")
         subnet_owner = constants.get_subnet_owner(is_testnet)
+
         competition = read_chain_commitment(
             subnet_owner, self.subtensor, self.config.netuid
         )
@@ -281,7 +282,7 @@ class Validator:
 
                 finally:
                     bt.logging.info("Cleaning cache folder")
-                    clean_cache_folder(miner_data_dir, eval_data_dir)
+                    clean_cache_folder(cache_dir=self.config.cache_dir)
             else:
                 bt.logging.warning(f"No metadata found for UID {uid}")
                 scores_per_uid[uid] = 0
