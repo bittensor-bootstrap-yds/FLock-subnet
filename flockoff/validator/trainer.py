@@ -97,7 +97,7 @@ def train_lora(
         torch.cuda.manual_seed(lucky_num)
         torch.cuda.manual_seed_all(lucky_num)
 
-    CONTEXT_LENGTH = 4096
+    CONTEXT_LENGTH = 2048
     with open(f"flockoff/validator/training_args.yaml", "r") as f:
         all_training_args = yaml.safe_load(f)
     model_key = next(iter(all_training_args))
