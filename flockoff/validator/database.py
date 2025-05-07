@@ -1,6 +1,7 @@
 import sqlite3
 from typing import Optional
 
+
 class ScoreDB:
     def __init__(self, db_path: str):
         self.db_path = db_path
@@ -22,7 +23,7 @@ class ScoreDB:
 
         self.conn.commit()
 
-    def get_revision(self, namespace: str) -> typing.Optional[str]: 
+    def get_revision(self, namespace: str) -> typing.Optional[str]:
         """Return last stored revision for this namespace (or None)."""
         c = self.conn.cursor()
         c.execute(

@@ -178,7 +178,6 @@ class Validator:
         self.consensus = self.metagraph.C
         bt.logging.debug(f"Consensus: {self.consensus}")
 
-        
         is_testnet = self.config.subtensor.network == "test"
         bt.logging.info(f"Network: {self.config.subtensor.network}")
         bt.logging.info(f"Is testnet: {is_testnet}")
