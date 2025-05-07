@@ -6,7 +6,7 @@ from typing import Optional
 ROOT_DIR = Path(__file__).parent.parent
 DECAY_RATE = 1
 MIN_WEIGHT_THRESHOLD = 1e-6
-DEFAULT_SCORE = 1e-5
+DEFAULT_SCORE = 0.0
 
 def get_subnet_owner(is_testnet: bool = False) -> str:
     """
