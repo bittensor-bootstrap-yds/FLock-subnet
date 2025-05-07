@@ -47,7 +47,7 @@ def test_zero_benchmark_evaluation():
     loss = 0.1
     benchmark_loss = 0
     power = 2  # Adding power parameter
-    expected_score = 1.0 / constants.NUM_UIDS
+    expected_score = constants.DEFAULT_SCORE
     score = compute_score(loss, benchmark_loss, power)
     assert np.isclose(
         score, expected_score, rtol=1e-9
@@ -57,7 +57,7 @@ def test_negative_benchmark_evaluation():
     loss = 0.1
     benchmark_loss = -0.1
     power = 2  # Adding power parameter
-    expected_score = 1.0 / constants.NUM_UIDS
+    expected_score = constants.DEFAULT_SCORE
     score = compute_score(loss, benchmark_loss, power)
     assert np.isclose(
         score, expected_score, rtol=1e-9
@@ -67,7 +67,7 @@ def test_none_benchmark_evaluation():
     loss = 0.1
     benchmark_loss = None
     power = 2  # Adding power parameter
-    expected_score = 1.0 / constants.NUM_UIDS
+    expected_score = constants.DEFAULT_SCORE
     score = compute_score(loss, benchmark_loss, power)
     assert np.isclose(
         score, expected_score, rtol=1e-9
@@ -77,7 +77,7 @@ def test_invalid_power():
     loss = 0.1
     benchmark_loss = 0.1
     power = 3  # Odd number, should trigger error
-    expected_score = 1.0 / constants.NUM_UIDS
+    expected_score = constants.DEFAULT_SCORE
     score = compute_score(loss, benchmark_loss, power)
     assert np.isclose(
         score, expected_score, rtol=1e-9
@@ -87,7 +87,7 @@ def test_none_power():
     loss = 0.1
     benchmark_loss = 0.1
     power = None  # None value, should trigger error
-    expected_score = 1.0 / constants.NUM_UIDS
+    expected_score = constants.DEFAULT_SCORE
     score = compute_score(loss, benchmark_loss, power)
     assert np.isclose(
         score, expected_score, rtol=1e-9

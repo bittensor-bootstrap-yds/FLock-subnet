@@ -4,9 +4,9 @@ from dataclasses import dataclass
 from typing import Optional
 
 ROOT_DIR = Path(__file__).parent.parent
-NUM_UIDS = 2**8 - 1
 DECAY_RATE = 1
-MIN_WEIGHT_THRESHOLD = 1e-4
+MIN_WEIGHT_THRESHOLD = 1e-6
+DEFAULT_SCORE = 1e-5
 
 def get_subnet_owner(is_testnet: bool = False) -> str:
     """
