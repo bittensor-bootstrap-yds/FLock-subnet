@@ -73,18 +73,6 @@ def download_dataset(
     db.set_revision(namespace, revision)
 
 
-def clean_cache_folder(cache_dir: str = None):
-    """
-    Remove only the HuggingFace cache to free up disk.
-    Dataset directories are now persisted and managed by download_dataset.
-    """
-    if cache_dir and os.path.exists(cache_dir):
-        try:
-            shutil.rmtree(cache_dir)
-        except Exception as e:
-            bt.logging.warning(f"Could not clean cache_dir {cache_dir}: {e}")
-
-
 def train_lora(
     lucky_num: int,
     benchmark_loss: float,

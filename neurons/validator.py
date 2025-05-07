@@ -33,7 +33,6 @@ from flockoff.validator.validator_utils import compute_score
 from flockoff.validator.trainer import (
     train_lora,
     download_dataset,
-    clean_cache_folder,
 )
 from flockoff.validator.database import ScoreDB
 
@@ -276,10 +275,6 @@ class Validator:
                     bt.logging.info(
                         f"Assigned fallback score {constants.DEFAULT_SCORE:.6f} to UID {uid} due to train error"
                     )
-
-                finally:
-                    bt.logging.info("Cleaning cache folder")
-                    clean_cache_folder(cache_dir=self.config.cache_dir)
             else:
                 bt.logging.warning(f"No metadata found for UID {uid}")
                 scores_per_uid[uid] = 0
