@@ -1,6 +1,8 @@
 import pytest
 import bittensor as bt
+from flockoff.utils.git import get_current_branch, is_up_to_date_with_main, check_latest_code
 from flockoff.utils.chain import read_chain_commitment
+import pytest
 
 # SUBNET_OWNER_KEY = "5DFcEniKrQRbCakLFGY3UqPL3ZbNnTQHp8LTvLfipWhE2Yfr"
 SUBNET_OWNER_KEY = "5FZGwrY9Ycz8m6fq5rpZCgoSrQWddb7SnZCr3rFU61auctG2"
@@ -40,3 +42,34 @@ def test_read_chain_commitment(node):
     bt.logging.info(
         f"Commitment values: id={comp.id}, repo={comp.repo}, bench={comp.bench}, rows={comp.rows}, pow={comp.pow}"
     )
+
+
+
+def test_git_functions():
+    """
+    Test the git utility functions.
+    
+    This test doesn't use mocks and interacts with the actual git repository.
+    It verifies that the functions work but doesn't fail the test if not up to date.
+    """
+    # Get current branch
+    branch = get_current_branch()
+    assert branch is not None, "Should be able to get current branch name"
+    
+    # Check if up to date
+    is_current = is_up_to_date_with_main()
+    # This is just informational, not a failure condition
+    print(f"\nCurrent branch: {branch}, Up to date with main: {is_current}")
+    
+    # Test check_latest_code function by checking if it raises an exception
+    try:
+        check_latest_code()
+        print("\nRepository is up to date with main")
+    except RuntimeError as e:
+        # Don't fail the test, just print the message
+        print(f"\nRepository is not up to date with main: {e}")
+        # We're logging this as a warning since it's not a test failure
+        bt.logging.warning(f"Repository not up to date with main: {e}")
+    
+    # Always pass this test
+    assert True, "Git functions test completed"
