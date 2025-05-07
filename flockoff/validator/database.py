@@ -15,7 +15,7 @@ class ScoreDB:
             self._init_db()
         except sqlite3.Error as e:
             logger.error(f"Failed to initialize database at {db_path}: {str(e)}")
-            raise DatabaseError(f"Database initialization failed: {str(e)}")
+            raise DatabaseError(f"Database initialization failed: {str(e)}") from e
 
     def _init_db(self):
         """Initialize the database with a table to store UID, hotkey, and score."""
@@ -34,7 +34,7 @@ class ScoreDB:
             self.conn.commit()
         except sqlite3.Error as e:
             logger.error(f"Failed to initialize database tables: {str(e)}")
-            raise DatabaseError(f"Failed to create database tables: {str(e)}")
+            raise DatabaseError(f"Failed to create database tables: {str(e)}") from e
 
     def get_revision(self, namespace: str) -> str | None:
         """Return last stored revision for this namespace (or None)."""
@@ -47,8 +47,7 @@ class ScoreDB:
             return row[0] if row else None
         except sqlite3.Error as e:
             logger.error(f"Failed to get revision for namespace {namespace}: {str(e)}")
-            raise DatabaseError(f"Failed to retrieve revision: {str(e)}")
-
+            raise DatabaseError(f"Failed to retrieve revision: {str(e)}") from e
     def set_revision(self, namespace: str, revision: str):
         """Upsert the revision for this namespace."""
         try:
@@ -64,8 +63,7 @@ class ScoreDB:
             self.conn.commit()
         except sqlite3.Error as e:
             logger.error(f"Failed to set revision for namespace {namespace}: {str(e)}")
-            raise DatabaseError(f"Failed to update revision: {str(e)}")
-
+            raise DatabaseError(f"Failed to update revision: {str(e)}") from e
     def insert_or_reset_uid(
         self, uid: int, hotkey: str, base_score: float = 1.0 / 255.0
     ):
@@ -82,7 +80,7 @@ class ScoreDB:
             self.conn.commit()
         except sqlite3.Error as e:
             logger.error(f"Failed to insert/reset UID {uid}: {str(e)}")
-            raise DatabaseError(f"Failed to insert/reset UID: {str(e)}")
+            raise DatabaseError(f"Failed to insert/reset UID: {str(e)}") from e
 
     def update_score(self, uid: int, new_score: float):
         """Update the score for a given UID"""
@@ -98,7 +96,7 @@ class ScoreDB:
             self.conn.commit()
         except sqlite3.Error as e:
             logger.error(f"Failed to update score for UID {uid}: {str(e)}")
-            raise DatabaseError(f"Failed to update score: {str(e)}")
+            raise DatabaseError(f"Failed to update score: {str(e)}") from e
 
     def get_scores(self, uids: list) -> list:
         """Retrieve scores for a list of UIDs, defaulting to 0.0 if not found."""
@@ -112,7 +110,7 @@ class ScoreDB:
             return [scores_dict.get(uid, 0.0) for uid in uids]
         except sqlite3.Error as e:
             logger.error(f"Failed to get scores for UIDs {uids}: {str(e)}")
-            raise DatabaseError(f"Failed to retrieve scores: {str(e)}")
+            raise DatabaseError(f"Failed to retrieve scores: {str(e)}") from e
 
     def __del__(self):
         """Close the connection when the instance is destroyed."""
