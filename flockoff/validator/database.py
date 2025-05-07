@@ -23,7 +23,7 @@ class ScoreDB:
 
         self.conn.commit()
 
-    def get_revision(self, namespace: str) -> typing.Optional[str]:
+    def get_revision(self, namespace: str) -> str | None:
         """Return last stored revision for this namespace (or None)."""
         c = self.conn.cursor()
         c.execute(
@@ -31,7 +31,6 @@ class ScoreDB:
         )
         row = c.fetchone()
         return row[0] if row else None
-
     def set_revision(self, namespace: str, revision: str):
         """Upsert the revision for this namespace."""
         c = self.conn.cursor()
