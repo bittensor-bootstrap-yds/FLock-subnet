@@ -24,6 +24,7 @@ import math
 import numpy as np
 from flockoff import constants
 from flockoff.utils.chain import assert_registered, read_chain_commitment
+from flockoff.utils.git import check_latest_code
 from flockoff.validator.chain import (
     retrieve_model_metadata,
     set_weights_with_err_msg,
@@ -32,7 +33,6 @@ from flockoff.validator.validator_utils import compute_score
 from flockoff.validator.trainer import (
     train_lora,
     download_dataset,
-    clean_cache_folder,
 )
 from flockoff.validator.database import ScoreDB
 
@@ -88,6 +88,9 @@ class Validator:
     def __init__(self):
         bt.logging.info("Initializing validator")
         self.config = Validator.config()
+
+        bt.logging.info("Checking git branch")
+        check_latest_code()
 
         if self.config.cache_dir and self.config.cache_dir.startswith("~"):
             self.config.cache_dir = os.path.expanduser(self.config.cache_dir)
@@ -160,7 +163,7 @@ class Validator:
         hotkeys = self.metagraph.hotkeys
         bt.logging.info(f"Current UIDs: {current_uids}")
 
-        base_score = 1.0 / constants.NUM_UIDS
+        base_score = constants.DEFAULT_SCORE
         for uid in current_uids:
             self.score_db.insert_or_reset_uid(uid, hotkeys[uid], base_score)
 
@@ -174,12 +177,12 @@ class Validator:
         self.consensus = self.metagraph.C
         bt.logging.debug(f"Consensus: {self.consensus}")
 
-        
         is_testnet = self.config.subtensor.network == "test"
         bt.logging.info(f"Network: {self.config.subtensor.network}")
         bt.logging.info(f"Is testnet: {is_testnet}")
         bt.logging.info("Reading chain commitment")
         subnet_owner = constants.get_subnet_owner(is_testnet)
+
         competition = read_chain_commitment(
             subnet_owner, self.subtensor, self.config.netuid
         )
@@ -267,17 +270,11 @@ class Validator:
 
                 except Exception as e:
                     bt.logging.error(f"train error: {e}")
-                    scores_per_uid[uid] = 1 / constants.NUM_UIDS
-                    fallback = 1.0 / 255.0
-                    scores_per_uid[uid] = fallback
+                    scores_per_uid[uid] = constants.DEFAULT_SCORE
                     block_per_uid[uid] = metadata.block
                     bt.logging.info(
-                        f"Assigned fallback score {fallback:.6f} to UID {uid} due to train error"
+                        f"Assigned fallback score {constants.DEFAULT_SCORE:.6f} to UID {uid} due to train error"
                     )
-
-                finally:
-                    bt.logging.info("Cleaning cache folder")
-                    clean_cache_folder(miner_data_dir, eval_data_dir)
             else:
                 bt.logging.warning(f"No metadata found for UID {uid}")
                 scores_per_uid[uid] = 0
@@ -291,7 +288,7 @@ class Validator:
             if (
                 score_i is None
                 or score_i == 0
-                or score_i == 1 / constants.NUM_UIDS
+                or score_i == constants.DEFAULT_SCORE
                 or uid_i in processed_uids
             ):
                 bt.logging.debug(
@@ -304,7 +301,7 @@ class Validator:
             for uid_j, score_j in scores_per_uid.items():
                 if (
                     uid_i != uid_j
-                    and score_j not in (None, 0, 1 / constants.NUM_UIDS)
+                    and score_j not in (None, 0, constants.DEFAULT_SCORE)
                     and score_j != 0
                     and uid_j not in processed_uids
                 ):
@@ -328,7 +325,7 @@ class Validator:
 
             for uid in group[1:]:
                 duplicates.add(uid)
-                scores_per_uid[uid] = 1 / constants.NUM_UIDS
+                scores_per_uid[uid] = constants.DEFAULT_SCORE
 
         bt.logging.info("Normalizing scores")
         normalized_scores = {}
@@ -341,7 +338,7 @@ class Validator:
                     bt.logging.warning(
                         f"Invalid benchmark ({competition.bench}) for UID {uid}; defaulting score to 0"
                     )
-                    normalized_score = 1.0 / constants.NUM_UIDS
+                    normalized_score = constants.DEFAULT_SCORE
                 else:
                     normalized_score = compute_score(
                         scores_per_uid[uid], competition.bench, competition.pow

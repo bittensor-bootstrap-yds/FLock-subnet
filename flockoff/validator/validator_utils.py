@@ -18,31 +18,32 @@ def compute_score(loss, benchmark_loss, power):
     if loss is None:
         bt.logging.warning("Loss is None, returning score of 0")
         return 0
-    if power is None: 
+    if power is None:
         bt.logging.warning("Power is None, returning score of 0")
-        return 1.0 / constants.NUM_UIDS
+        return constants.DEFAULT_SCORE
 
     if power % 2 != 0 or power < 0:
         bt.logging.error(
             f"Power must be a positive even number. Got {power}. Returning baseline score."
         )
-        return 1.0 / constants.NUM_UIDS
+        return constants.DEFAULT_SCORE
 
     if benchmark_loss is None or benchmark_loss <= 0:
         bt.logging.error(
             f"Invalid benchmark_loss ({benchmark_loss}). Returning baseline score."
         )
-        return 1.0 / constants.NUM_UIDS
+        return constants.DEFAULT_SCORE
 
     center_point = get_center_point(power, benchmark_loss)
-    score = 1 / (1 + center_point * loss ** power)
+    score = 1 / (1 + center_point * loss**power)
     return score
 
-def get_center_point(power, benchmark_loss): 
+
+def get_center_point(power, benchmark_loss):
     """
     Get the center point for the sigmoid function.
 
-    Args: 
+    Args:
         power: The steepness of the function
         benchmark_loss: The benchmark loss to compare against
     """
