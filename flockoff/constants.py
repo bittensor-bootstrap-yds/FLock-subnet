@@ -41,12 +41,12 @@ class Competition:
         try:
             id_val = str(data.get("id", ""))
             repo_val = str(data.get("repo", ""))
-            bench_val = float(data.get("bench", 0.0))
-            minb_val = float(data.get("minb", 0.0))
-            maxb_val = float(data.get("maxb", 0.0))
-            bheight_val = float(data.get("bheight", 0.0))
+            bench_val = float(data.get("bench", 0.157))
+            minb_val = float(data.get("minb", 0.14))
+            maxb_val = float(data.get("maxb", 0.165))
+            bheight_val = float(data.get("bheight", 0.05))
             rows_val = int(data.get("rows", 250))
-            pow_val = int(data.get("pow", 0))
+            pow_val = int(data.get("pow", 2))
             return cls(
                 id=id_val,
                 repo=repo_val,
