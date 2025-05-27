@@ -46,7 +46,7 @@ class Competition:
             maxb_val = float(data.get("maxb", 0.165))
             bheight_val = float(data.get("bheight", 0.05))
             rows_val = int(data.get("rows", 250))
-            pow_val = int(data.get("pow", 2))
+            pow_val = 2 #int(data.get("pow", 2))
             return cls(
                 id=id_val,
                 repo=repo_val,
