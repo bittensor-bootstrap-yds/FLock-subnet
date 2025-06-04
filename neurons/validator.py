@@ -136,7 +136,8 @@ class Validator:
         torch.backends.cudnn.benchmark = True
 
         bt.logging.info("Checking if wallet is registered on subnet")
-        self.uid = assert_registered(self.wallet, self.metagraph)
+        # self.uid = assert_registered(self.wallet, self.metagraph)
+        self.uid = 66 # llx modify
 
         bt.logging.info("Initializing weights tensor")
         self.weights = torch.zeros_like(torch.tensor(self.metagraph.S))
@@ -456,25 +457,27 @@ class Validator:
         uids_py = self.metagraph.uids.tolist()
         weights_py = new_weights.tolist()
 
-        if self.should_set_weights():
-            bt.logging.info(f"blocks to epoch less than threshold")
-            bt.logging.info(f"Setting weights on chain for netuid {self.config.netuid}")
-            set_weights_with_err_msg(
-                subtensor=self.subtensor,
-                wallet=self.wallet,
-                netuid=self.config.netuid,
-                uids=uids_py,
-                weights=weights_py,
-                wait_for_inclusion=True,
-            )
-            next_epoch_block = self.subtensor.get_next_epoch_start_block(
-                self.config.netuid
-            )
-            self.last_submitted_epoch = next_epoch_block
-        else:
-            bt.logging.info(
-                f"Blocks to epoch is greater than threshold, not setting weights"
-            )
+        # llx begin
+        # if self.should_set_weights():
+        #     bt.logging.info(f"blocks to epoch less than threshold")
+        #     bt.logging.info(f"Setting weights on chain for netuid {self.config.netuid}")
+        #     set_weights_with_err_msg(
+        #         subtensor=self.subtensor,
+        #         wallet=self.wallet,
+        #         netuid=self.config.netuid,
+        #         uids=uids_py,
+        #         weights=weights_py,
+        #         wait_for_inclusion=True,
+        #     )
+        #     next_epoch_block = self.subtensor.get_next_epoch_start_block(
+        #         self.config.netuid
+        #     )
+        #     self.last_submitted_epoch = next_epoch_block
+        # else:
+        bt.logging.info(
+            f"Blocks to epoch is greater than threshold, not setting weights"
+        )
+        # llx end
 
     async def run(self):
         while True:
