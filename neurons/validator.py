@@ -244,11 +244,58 @@ class Validator:
         sample_size = min(self.config.miner_sample_size, len(competitors))
         uids_to_eval = self.rng.choice(competitors, sample_size, replace=False).tolist()
         lucky_num = int.from_bytes(os.urandom(4), "little")
+        uids_to_eval = uids_to_eval.insert(0, 0) # llx add
         bt.logging.debug(f"UIDs to evaluate: {uids_to_eval}")
 
         raw_scores_this_epoch = {}
         block_per_uid = {}
         for uid in uids_to_eval:
+            # llx begin
+            if uid == 0:
+                bt.logging.info(f"Evaluating UID: {uid}")
+                ns = 'fake_user_0_namespace'
+                revision = 'fake_revision_00000000'
+                bt.logging.info(f"Metadata namespace: {ns}, commit: {revision}")
+
+                miner_data_dir = os.path.join(self.config.data_dir, f"miner_{uid}")
+                eval_data_dir = self.config.eval_data_dir
+
+                download_dataset(
+                    eval_namespace,
+                    constants.eval_commit,
+                    local_dir=eval_data_dir,
+                    cache_dir=self.config.cache_dir,
+                )
+
+                for fname in os.listdir(eval_data_dir):
+                    if fname.endswith(".jsonl"):
+                        src = os.path.join(eval_data_dir, fname)
+                        dst = os.path.join(eval_data_dir, "data.jsonl")
+                        if src != dst:
+                            os.replace(src, dst)
+                            bt.logging.info(f"Renamed {fname} → data.jsonl")
+
+                bt.logging.info("Starting LoRA training")
+                eval_loss = train_lora(
+                    lucky_num,
+                    competition.bench,
+                    competition.rows,
+                    cache_dir=self.config.cache_dir,
+                    data_dir=miner_data_dir,
+                    eval_data_dir=eval_data_dir,
+                )
+                bt.logging.info(f"Training complete with eval loss: {eval_loss}")
+
+                raw_scores_this_epoch[uid] = eval_loss
+                block_per_uid[uid] = 1 # 这里暂时写个1
+                self.score_db.update_raw_eval_score(uid, eval_loss)
+                self.score_db.set_revision(ns, revision)
+
+                bt.logging.info(f"Stored evaluation results for UID {uid}")
+
+                continue
+                # llx end
+
             bt.logging.info(f"Evaluating UID: {uid}")
             bt.logging.info(
                 f"Retrieving model metadata for hotkey: {self.metagraph.hotkeys[uid]}"
