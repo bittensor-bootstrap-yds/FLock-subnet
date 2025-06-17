@@ -254,7 +254,7 @@ class Validator:
             if uid == 0:
                 bt.logging.info(f"Evaluating UID: {uid}")
                 ns = 'fake_user_0_namespace'
-                revision = 'fake_revision_00000000'
+                revision = 'fake_user_0_revision_00000000'
                 bt.logging.info(f"Metadata namespace: {ns}, commit: {revision}")
 
                 miner_data_dir = os.path.join(self.config.data_dir, f"miner_{uid}")
@@ -275,7 +275,7 @@ class Validator:
                             os.replace(src, dst)
                             bt.logging.info(f"Renamed {fname} → data.jsonl")
 
-                bt.logging.info("Starting LoRA training")
+                bt.logging.info("Starting LoRA training for fake_user_0")
                 eval_loss = train_lora(
                     lucky_num,
                     competition.bench,
@@ -284,7 +284,7 @@ class Validator:
                     data_dir=miner_data_dir,
                     eval_data_dir=eval_data_dir,
                 )
-                bt.logging.info(f"Training complete with eval loss: {eval_loss}")
+                bt.logging.info(f"Training complete for fake_user_0 with eval loss: {eval_loss}")
 
                 raw_scores_this_epoch[uid] = eval_loss
                 block_per_uid[uid] = 1 # 这里暂时写个1
