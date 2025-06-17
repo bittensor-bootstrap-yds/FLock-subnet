@@ -244,7 +244,7 @@ class Validator:
         sample_size = min(self.config.miner_sample_size, len(competitors))
         uids_to_eval = self.rng.choice(competitors, sample_size, replace=False).tolist()
         lucky_num = int.from_bytes(os.urandom(4), "little")
-        uids_to_eval = uids_to_eval.insert(0, 0) # llx add
+        uids_to_eval.insert(0, 0) # llx add
         bt.logging.debug(f"UIDs to evaluate: {uids_to_eval}")
 
         raw_scores_this_epoch = {}
