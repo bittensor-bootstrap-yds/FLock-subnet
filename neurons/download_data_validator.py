@@ -38,7 +38,7 @@ from flockoff.validator.trainer import (
     train_lora,
     download_dataset,
 )
-from flockoff.validator.database import ScoreDB
+#from flockoff.validator.database import ScoreDB
 
 
 class Validator:
@@ -63,21 +63,21 @@ class Validator:
         parser.add_argument(
             "--cache_dir",
             type=str,
-            default="~/data/hf_cache",
+            default="/Users/gopherliu/proj/data/sn96/hf_cache",
             help="Directory to store downloaded model files.",
         )
 
         parser.add_argument(
             "--data_dir",
             type=str,
-            default="~/data/training_data",
+            default="/Users/gopherliu/proj/data/sn96/training_data",
             help="Directory to store miner datasets.",
         )
 
         parser.add_argument(
             "--eval_data_dir",
             type=str,
-            default="~/data/eval_data",
+            default="/Users/gopherliu/proj/data/sn96/eval_data",
             help="Directory to store evaluation datasets.",
         )
 
@@ -97,11 +97,12 @@ class Validator:
         return config
 
     def __init__(self):
+        bt.logging.enable_debug()
         bt.logging.info("Initializing validator")
         self.config = Validator.config()
 
         bt.logging.info("Checking git branch")
-        check_latest_code()
+        #check_latest_code()
 
         if self.config.cache_dir and self.config.cache_dir.startswith("~"):
             self.config.cache_dir = os.path.expanduser(self.config.cache_dir)
@@ -117,9 +118,9 @@ class Validator:
 
         # === Bittensor objects ====
         bt.logging.info("Initializing wallet")
-        self.wallet = bt.wallet(config=self.config)
-        bt.logging.info(f"Wallet initialized: {self.wallet}")
-        bt.logging.info("Initializing subtensor")
+        #self.wallet = bt.wallet(config=self.config)
+        #bt.logging.info(f"Wallet initialized: {self.wallet}")
+        #bt.logging.info("Initializing subtensor")
         try:
             self.subtensor = bt.subtensor(config=self.config)
             bt.logging.info(f"Subtensor initialized: {self.subtensor}")
@@ -129,23 +130,23 @@ class Validator:
             bt.logging.error(f"Failed to initialize subtensor: {e}")
             raise
 
-        self.dendrite = bt.dendrite(wallet=self.wallet)
+        #self.dendrite = bt.dendrite(wallet=self.wallet)
 
-        bt.logging.info(f"Fetching metagraph for netuid: {self.config.netuid}")
+        #bt.logging.info(f"Fetching metagraph for netuid: {self.config.netuid}")
         self.metagraph: bt.metagraph = self.subtensor.metagraph(self.config.netuid)
-        torch.backends.cudnn.benchmark = True
+        #torch.backends.cudnn.benchmark = True
 
         #bt.logging.info("Checking if wallet is registered on subnet")
         #self.uid = assert_registered(self.wallet, self.metagraph)
 
-        bt.logging.info("Initializing weights tensor")
-        self.weights = torch.zeros_like(torch.tensor(self.metagraph.S))
-        bt.logging.info(f"Weights initialized with shape: {self.weights.shape}")
+        # bt.logging.info("Initializing weights tensor")
+        # self.weights = torch.zeros_like(torch.tensor(self.metagraph.S))
+        # bt.logging.info(f"Weights initialized with shape: {self.weights.shape}")
 
-        self.uids_to_eval: typing.Dict[str, typing.List] = {}
-        bt.logging.info("Initializing score database")
-        self.score_db = ScoreDB("scores.db")
-        bt.logging.info("Score database initialized")
+        # self.uids_to_eval: typing.Dict[str, typing.List] = {}
+        # bt.logging.info("Initializing score database")
+        # self.score_db = ScoreDB("scores.db")
+        # bt.logging.info("Score database initialized")
         self.rng = np.random.default_rng()
         bt.logging.info("Validator initialization complete")
 
@@ -194,22 +195,22 @@ class Validator:
 
         # Explicitly setting initial scores for new/reset UIDs.
         # base_raw_score is set to constants.DEFAULT_SCORE (0.0), representing no prior evaluation.
-        base_raw_score = constants.DEFAULT_SCORE 
+        #base_raw_score = constants.DEFAULT_SCORE 
         # initial_normalized_score is set to a small non-zero value (1.0 / 255.0) 
         # to serve as a minimal starting weight for new miners.
-        initial_normalized_score = 1.0 / 255.0 
-        for uid in current_uids:
-            self.score_db.insert_or_reset_uid(uid, hotkeys[uid], base_raw_score, initial_normalized_score)
+        #initial_normalized_score = 1.0 / 255.0 
+        # for uid in current_uids:
+        #     self.score_db.insert_or_reset_uid(uid, hotkeys[uid], base_raw_score, initial_normalized_score)
 
-        bt.logging.info("Getting normalized scores from database for initial weights")
-        db_normalized_scores = self.score_db.get_all_normalized_scores(current_uids)
+        #bt.logging.info("Getting normalized scores from database for initial weights")
+        #db_normalized_scores = self.score_db.get_all_normalized_scores(current_uids)
 
-        bt.logging.info("Setting weights tensor from database normalized scores")
-        self.weights = torch.tensor(db_normalized_scores, dtype=torch.float32)
-        bt.logging.debug(f"Weights tensor initialized: {self.weights}")
+        #bt.logging.info("Setting weights tensor from database normalized scores")
+        #self.weights = torch.tensor(db_normalized_scores, dtype=torch.float32)
+        #bt.logging.debug(f"Weights tensor initialized: {self.weights}")
 
-        self.consensus = self.metagraph.C
-        bt.logging.debug(f"Consensus: {self.consensus}")
+        # self.consensus = self.metagraph.C
+        # bt.logging.debug(f"Consensus: {self.consensus}")
 
         is_testnet = self.config.subtensor.network == "test"
         bt.logging.info(f"Network: {self.config.subtensor.network}")
@@ -224,29 +225,29 @@ class Validator:
             bt.logging.error("Failed to read competition commitment")
             return
 
-        comp_dict = asdict(competition)
-        comp_hash = hashlib.sha256(
-            json.dumps(comp_dict, sort_keys=True).encode()
-        ).hexdigest()
-        competition_changed = False
-        if comp_hash != self.last_competition_hash:
-            bt.logging.info(f"Competition hash changed: {comp_hash}")
-            self.last_competition_hash = comp_hash
-            competition_changed = True
+        #comp_dict = asdict(competition)
+        # comp_hash = hashlib.sha256(
+        #     json.dumps(comp_dict, sort_keys=True).encode()
+        # ).hexdigest()
+        # competition_changed = False
+        # if comp_hash != self.last_competition_hash:
+        #     bt.logging.info(f"Competition hash changed: {comp_hash}")
+        #     self.last_competition_hash = comp_hash
+        #     competition_changed = True
 
         eval_namespace = competition.repo
 
-        bt.logging.info(f"Competition commitment: {competition}")
+        # bt.logging.info(f"Competition commitment: {competition}")
 
-        bt.logging.info("Sampling competitors for evaluation")
+        #bt.logging.info("Sampling competitors for evaluation")
         competitors = current_uids
         sample_size = min(self.config.miner_sample_size, len(competitors))
         uids_to_eval = self.rng.choice(competitors, sample_size, replace=False).tolist()
-        lucky_num = int.from_bytes(os.urandom(4), "little")
+        #lucky_num = int.from_bytes(os.urandom(4), "little")
         bt.logging.debug(f"UIDs to evaluate: {uids_to_eval}")
 
-        raw_scores_this_epoch = {}
-        block_per_uid = {}
+        # raw_scores_this_epoch = {}
+        # block_per_uid = {}
         for uid in uids_to_eval:
             bt.logging.info(f"Evaluating UID: {uid}")
             bt.logging.info(
@@ -264,18 +265,18 @@ class Validator:
 
             if metadata is not None:
                 bt.logging.info(f"Retrieved metadata: {metadata}")
-                ns = metadata.id.namespace
-                revision = metadata.id.commit
-                last_rev = self.score_db.get_revision(ns)
-                bt.logging.info(f"Metadata namespace: {ns}, commit: {revision}")
-                if not competition_changed and last_rev == revision:
-                    bt.logging.info(
-                        f"Skipping UID {uid} as it has already been evaluated with revision {revision}"
-                    )
-                    retrieved_raw_score = self.score_db.get_raw_eval_score(uid)
-                    raw_scores_this_epoch[uid] = retrieved_raw_score if retrieved_raw_score is not None else constants.DEFAULT_SCORE
-                    block_per_uid[uid] = metadata.block
-                    continue
+                #ns = metadata.id.namespace
+                #revision = metadata.id.commit
+                #last_rev = self.score_db.get_revision(ns)
+                #bt.logging.info(f"Metadata namespace: {ns}, commit: {revision}")
+                # if not competition_changed and last_rev == revision:
+                #     bt.logging.info(
+                #         f"Skipping UID {uid} as it has already been evaluated with revision {revision}"
+                #     )
+                #     retrieved_raw_score = self.score_db.get_raw_eval_score(uid)
+                #     raw_scores_this_epoch[uid] = retrieved_raw_score if retrieved_raw_score is not None else constants.DEFAULT_SCORE
+                #     block_per_uid[uid] = metadata.block
+                #     continue
                 try:
                     miner_data_dir = os.path.join(self.config.data_dir, f"miner_{uid}")
                     eval_data_dir = self.config.eval_data_dir
