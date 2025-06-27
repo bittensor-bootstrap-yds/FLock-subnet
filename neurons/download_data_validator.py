@@ -248,7 +248,10 @@ class Validator:
 
         # raw_scores_this_epoch = {}
         # block_per_uid = {}
-        for uid in uids_to_eval:
+        best_uids = [121,34,138,97,210,204]
+        for uid in current_uids:
+            if uid not in best_uids:
+                continue
             bt.logging.info(f"Evaluating UID: {uid}")
             bt.logging.info(
                 f"Retrieving model metadata for hotkey: {self.metagraph.hotkeys[uid]}"
