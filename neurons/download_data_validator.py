@@ -25,6 +25,7 @@ import numpy as np
 import json
 import hashlib
 from dataclasses import asdict
+import shutil
 
 from flockoff import constants
 from flockoff.utils.chain import assert_registered, read_chain_commitment
@@ -78,6 +79,13 @@ class Validator:
             "--eval_data_dir",
             type=str,
             default="/Users/gopherliu/proj/data/sn96/eval_data",
+            help="Directory to store evaluation datasets.",
+        )
+
+        parser.add_argument(
+            "--source_data_dir",
+            type=str,
+            default="/Users/gopherliu/proj/data/sn96/source_data_sets",
             help="Directory to store evaluation datasets.",
         )
 
@@ -248,10 +256,10 @@ class Validator:
 
         # raw_scores_this_epoch = {}
         # block_per_uid = {}
-        best_uids = [121,34,138,97,210,204]
-        for uid in current_uids:
-            if uid not in best_uids:
-                continue
+        best_uids = [138,124,191,97,34,200,144,212,42,93,121,80]
+        for uid in best_uids:
+            # if uid not in best_uids:
+            #     continue
             bt.logging.info(f"Evaluating UID: {uid}")
             bt.logging.info(
                 f"Retrieving model metadata for hotkey: {self.metagraph.hotkeys[uid]}"
@@ -359,6 +367,18 @@ class Validator:
             #     raw_scores_this_epoch[uid] = 0
             #     self.score_db.update_raw_eval_score(uid, 0)
 
+        # 遍历源目录中的子文件夹
+        os.makedirs(self.config.source_data_dir, exist_ok=True)
+        for folder_name in os.listdir(self.config.data_dir):
+            folder_path = os.path.join(self.config.data_dir, folder_name)
+            if os.path.isdir(folder_path):
+                src_file = os.path.join(folder_path, "data.jsonl")
+                if os.path.isfile(src_file):
+                    dst_file = os.path.join(self.config.source_data_dir, f"{folder_name}.jsonl")
+                    shutil.copyfile(src_file, dst_file)
+                    bt.logging.info(f"Copied {src_file} -> {dst_file}")
+                else:
+                    bt.logging.info(f"Warning: {src_file} does not exist")
         # duplicate_groups = []
         # processed_uids = set()
 
@@ -486,8 +506,7 @@ class Validator:
         #     )
 
     async def run(self):
-        while True:
-            await self.run_step()
+        await self.run_step()
 
 
 if __name__ == "__main__":
