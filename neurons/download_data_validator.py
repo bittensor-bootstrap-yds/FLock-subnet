@@ -256,7 +256,7 @@ class Validator:
 
         # raw_scores_this_epoch = {}
         # block_per_uid = {}
-        best_uids = [138,124,191,97,34,200,144,212,42,93,121,80]
+        best_uids = [145,35,195,77,90,41,163,2,138,124]
         for uid in best_uids:
             # if uid not in best_uids:
             #     continue
